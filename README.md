@@ -1,1 +1,2 @@
-# KROMA: Knowledge Retrieval Ontology Matching using Large Language Model
+# KROMA
+Knowledge Retrieval Ontology Matching using Large Language Model
