@@ -1,0 +1,8 @@
+{
+    "agent_type": "togetherai",
+    "agent_name": "meta-llama-llama-2-70b-hf",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "nell_dbpedia",
+    "method_name": "kroma",
+    "query_options": ["nell", "dbpedia", "conceptnet", "wordnet"]
+}

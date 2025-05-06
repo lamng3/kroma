@@ -93,3 +93,13 @@ METADATA = {
         },
     },
 }
+
+SPARQLEndpoints = {
+    "nell": "http://nell-ld.telecom-st-etienne.fr/sparql", # (not working) paper = Nell2RDF: Read the Web, and turn it into RDF
+    "dbpedia": "http://dbpedia.org/sparql",
+    "ncit": "https://shared.semantics.cancer.gov/sparql",
+    "doid": "https://sparql.disease-ontology.org/",
+    "snomed": "http://purl.bioontology.org/ontology/SNOMEDCT/",
+    "fma": "http://bioportal.bioontology.org/ontologies/FMA_RadLex",
+    "wikidata": "https://query.wikidata.org/bigdata/namespace/wdq/sparql?query={SPARQL}"
+}

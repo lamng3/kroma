@@ -1,0 +1,8 @@
+{
+    "subtask": "envo_sweet",
+    "task_name": "ontology_matching",
+    "datasets": ["small"],
+    "dataset_type": "envo-sweet",
+    "csv_folder": "./experiments/dataset/OAEI/Biodiv",
+    "sample_sz": 1000
+}

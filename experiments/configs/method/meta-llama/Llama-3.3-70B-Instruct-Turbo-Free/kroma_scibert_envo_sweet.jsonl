@@ -1,0 +1,8 @@
+{
+    "agent_type": "togetherai",
+    "agent_name": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "envo_sweet",
+    "method_name": "kroma",
+    "query_options": ["envo", "sweet", "conceptnet", "wordnet"]
+}

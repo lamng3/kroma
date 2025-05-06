@@ -1,0 +1,8 @@
+{
+    "subtask": "mouse_human",
+    "task_name": "ontology_matching",
+    "datasets": ["small"],
+    "dataset_type": "mouse-human",
+    "csv_folder": "./experiments/dataset/OAEI/Anatomy/anatomy-dataset",
+    "sample_sz": 1000
+}

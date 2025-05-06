@@ -1,0 +1,8 @@
+{
+    "agent_type": "togetherai",
+    "agent_name": "mistralai/Mistral-7B-Instruct-v0.3",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "envo_sweet",
+    "method_name": "kroma",
+    "query_options": ["envo", "sweet", "conceptnet", "wordnet"]
+}

@@ -1,0 +1,8 @@
+{
+    "subtask": "yago_wikidata",
+    "task_name": "ontology_matching_yago_wikidata",
+    "datasets": ["small"],
+    "dataset_type": "yago-wikidata",
+    "csv_folder": "./experiments/dataset/OAEI/CommonKG/YAGO-Wikidata",
+    "sample_sz": 1000
+}

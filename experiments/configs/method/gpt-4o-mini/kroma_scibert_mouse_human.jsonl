@@ -1,0 +1,8 @@
+{
+    "agent_type": "openai",
+    "agent_name": "gpt-4o-mini",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "mouse_human",
+    "method_name": "kroma",
+    "query_options": ["mouse", "human", "conceptnet", "wordnet"]
+}

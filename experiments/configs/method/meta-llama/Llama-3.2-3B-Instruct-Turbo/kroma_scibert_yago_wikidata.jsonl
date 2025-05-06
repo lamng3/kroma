@@ -1,0 +1,8 @@
+{
+    "agent_type": "togetherai",
+    "agent_name": "meta-llama/Llama-3.2-3B-Instruct-Turbo",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "yago_wikidata",
+    "method_name": "kroma",
+    "query_options": ["yago", "wikidata", "conceptnet", "wordnet"]
+}

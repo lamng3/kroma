@@ -1,0 +1,8 @@
+{
+    "subtask": "mi_matonto",
+    "task_name": "ontology_matching",
+    "datasets": ["small"],
+    "dataset_type": "mi-matonto",
+    "csv_folder": "./experiments/dataset/OAEI/MSE/MI-MatOnto",
+    "sample_sz": 1000
+}

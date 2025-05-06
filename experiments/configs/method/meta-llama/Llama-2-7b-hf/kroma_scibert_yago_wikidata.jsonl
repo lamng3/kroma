@@ -1,0 +1,8 @@
+{
+    "agent_type": "huggingface",
+    "agent_name": "meta-llama/Llama-2-7b-hf",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "yago_wikidata",
+    "method_name": "kroma",
+    "query_options": ["yago", "wikidata", "conceptnet", "wordnet"]
+}

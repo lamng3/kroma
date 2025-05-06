@@ -1,0 +1,8 @@
+{
+    "subtask": "nell_dbpedia",
+    "task_name": "ontology_matching_nell_dbpedia",
+    "datasets": ["final"],
+    "dataset_type": "nell-dbpedia",
+    "csv_folder": "./experiments/dataset/OAEI/CommonKG/Nell-DBpedia",
+    "sample_sz": 1000
+}

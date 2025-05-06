@@ -1,0 +1,8 @@
+{
+    "agent_type": "openai",
+    "agent_name": "gpt-4o-mini",
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "omim_ordo",
+    "method_name": "kroma",
+    "query_options": ["omim", "ordo", "conceptnet", "wordnet"]
+}

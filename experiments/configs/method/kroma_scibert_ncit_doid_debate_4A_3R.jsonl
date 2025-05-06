@@ -1,0 +1,15 @@
+{
+    "agent_configs": [
+        { "agent_type": "togetherai", "agent_name": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free" },
+        { "agent_type": "togetherai", "agent_name": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free" },
+        { "agent_type": "togetherai", "agent_name": "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free" },
+        { "agent_type": "togetherai", "agent_name": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free" }
+    ],
+    "embedding_model": "allenai/scibert_scivocab_uncased",
+    "task": "ncit_doid",
+    "method_name": "kroma_debate_4A_3R",
+    "query_options": ["ncit", "doid", "conceptnet", "wordnet"],
+    "n_agents": 4,
+    "n_rounds": 3,
+    "dropout": 0
+}
