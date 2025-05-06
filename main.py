@@ -18,8 +18,8 @@ from agents.utils import simple_match
 
 from inference.factory import create_embedding_model
 
-from tasks.loader import load_ontologies_from_csv
-from tasks.builder import build_matching_task
+from tasks.loader import CsvAlignmentLoader
+from tasks.builder import build_ontology_matching_task
 
 from retrieval.vector_store import VectorStore
 
@@ -34,18 +34,26 @@ from metrics.scoring import calculate_metrics
 random.seed(42)
 print("Starting KROMA evaluation...")
 
-# logging
+# logging: write to file and also print INFO to console if desired
 log_path = Path("logs/kroma.log")
 log_path.parent.mkdir(parents=True, exist_ok=True)
+
+# configure file handler
 logging.basicConfig(
     filename=str(log_path),
     filemode="w",
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+    format="[%(levelname)s] %(message)s",
 )
-logger = logging.getLogger(__name__)
-sys.stdout = logger.handlers[0].stream
-sys.stderr = logger.handlers[0].stream
+
+# also add a console handler so logger.info() appears on stdout
+console = logging.StreamHandler(sys.stdout)
+console.setLevel(logging.INFO)
+console.setFormatter(logging.Formatter("[%(levelname)s] %(message)s"))
+logging.getLogger().addHandler(console)
+
+logger = logging.getLogger()  
+logger.info(f"Logging initialized — writing to {log_path}")
 
 # ------------------------------------------------------------------------------
 # ARGUMENTS
@@ -64,13 +72,17 @@ args = parser.parse_args()
 # ------------------------------------------------------------------------------
 # LOAD CONFIGS
 # ------------------------------------------------------------------------------
-method_cfg = load_config(Path("experiments/configs/method")/args.llm/f"{args.method_config}.jsonl")
+method_cfg_path = Path("experiments/configs/method")/args.llm/f"{args.method_config}.jsonl"
+logger.info(f"Method config path: {method_cfg_path}")
+method_cfg = load_config(method_cfg_path)
 agent_type, agent_name = method_cfg['agent_type'], method_cfg['agent_name']
 method_name   = method_cfg['method_name']
 task_key      = method_cfg['task']
 query_opts    = method_cfg['query_options']
 
-ds_cfg = load_config(Path("experiments/configs/datasets")/f"{task_key}.json")
+ds_cfg_path = Path("experiments/configs/datasets")/f"{task_key}.json"
+logger.info(f"Dataset config path: {ds_cfg_path}")
+ds_cfg = load_config(ds_cfg_path)
 csv_paths = [ Path(ds_cfg['csv_folder'])/f"{n}.csv" for n in ds_cfg['datasets'] ]
 
 dict_paths = load_config("experiments/configs/dictionary.json")
@@ -93,8 +105,18 @@ predicted_pairs, prediction_file = get_predicted_pairs_and_file(
 # ------------------------------------------------------------------------------
 # BUILD ONTOLOGY TASK
 # ------------------------------------------------------------------------------
-OS, OT, raw_aligns = load_ontologies_from_csv(csv_paths, ds_cfg['dataset_type'])
-OS, OT, task_aligns, OS_map, OT_map = build_matching_task(OS, OT, raw_aligns, ds_cfg['sample_sz'])
+# load raw graphs + alignments
+loader = CsvAlignmentLoader(csv_paths, dataset=ds_cfg['dataset_type'])
+OS, OT, raw_aligns = loader.load()
+
+# sample & build parent/child maps
+OS, OT, task_aligns, OS_map, OT_map = build_ontology_matching_task(
+    OS, OT, raw_aligns, sample_sz=ds_cfg['sample_sz']
+)
+
+# initialize the shared compressed_graph and rank_attr for bisimulation & refinement
+from agents.prompter import initialize_graph
+initialize_graph(OS, OT)
 
 # ------------------------------------------------------------------------------
 # PREPARE COMPRESSED GRAPH + RANKS
@@ -104,19 +126,18 @@ from algorithms.bisimulation import compute_node_ranks
 rank_attr = compute_node_ranks(compressed_graph)
 
 # ------------------------------------------------------------------------------
-# SETUP RAG VECTOR STORE
+# SETUP RAG VECTOR STORE (in‐memory cosine similarity)
 # ------------------------------------------------------------------------------
-embedder = create_embedding_model("huggingface", "all-MiniLM-L6-v2")
-dim = 384
-store = VectorStore(dim)
-# index all concept identifiers
-concept_docs, concept_ids = [], []
-for node in compressed_graph:
-    text = f"{node[0]} {node[1]}"
-    concept_docs.append(text)
-    concept_ids.append(node)
-embs = embedder.encode(concept_docs)
-store.add(concept_docs, embs, concept_ids)
+embedder = create_embedding_model("huggingface", "allenai/scibert_scivocab_uncased")
+store = VectorStore()
+
+# index all concept identifiers (use node tuple as ext_id)
+concept_ids = list(compressed_graph.keys())
+concept_texts = [f"{lbl} {uri}" for lbl, uri in concept_ids]
+concept_embs = embedder.encode(concept_texts)
+
+# now `add(ext_ids, embeddings)`
+store.add(ext_ids=concept_ids, embeddings=concept_embs)
 
 # ------------------------------------------------------------------------------
 # EVALUATION LOOP
@@ -153,13 +174,15 @@ for idx, (p, c, label) in enumerate(task_aligns, 1):
         pred, conf, accept = 1, 10, True
         llm_metrics = {'input_token':0,'output_token':0,'api_call_cnt':0}
     else:
-        # RAG contexts
-        src_vec = embedder.encode([src_node[0]])[0]
-        tgt_vec = embedder.encode([tgt_node[0]])[0]
-        src_hits = store.query(src_vec, top_k=3)
-        tgt_hits = store.query(tgt_vec, top_k=3)
-        src_ctx = [store.get_text(i) for i,_ in src_hits]
-        tgt_ctx = [store.get_text(i) for i,_ in tgt_hits]
+        # RAG contexts via in‐memory store
+        src_emb = embedder.encode([src_node[0]])[0]
+        tgt_emb = embedder.encode([tgt_node[0]])[0]
+        src_hits = store.query(src_emb, top_k=3)     # List[(ext_id, score)]
+        tgt_hits = store.query(tgt_emb, top_k=3)
+
+        # retrieve texts for context
+        src_ctx = [f"{lbl} {uri}" for (lbl,uri) in [hid for hid,_ in src_hits]]
+        tgt_ctx = [f"{lbl} {uri}" for (lbl,uri) in [hid for hid,_ in tgt_hits]]
         context_block = (
             "Source context:\n- " + "\n- ".join(src_ctx) +
             "\n\nTarget context:\n- " + "\n- ".join(tgt_ctx) + "\n\n"

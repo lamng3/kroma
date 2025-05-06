@@ -1,93 +1,132 @@
-from typing import List, Dict, Any
-
-from config.arguments import ModelArguments, ModelMetadata
+from typing import Any, Dict, List, Optional, Tuple
+from config.arguments import (
+    ModelArguments, 
+    ModelMetadata, 
+    EmbeddingArguments,
+    APIStats,
+)
+from models.providers import (
+    ChatProvider, 
+    EmbeddingProvider,
+)
 from config.constants import TOTAL_TOKENS_LIMIT
 
-from models.providers import EmbeddingProvider
-from models.stats import APIStats
-
 class BaseModel:
-    def __init__(self, args: ModelArguments, metadata: ModelMetadata):
-        # initialise with provided arguments and metadata
+    """
+    Wraps a ChatProvider (OpenAI, Together, etc.) to provide:
+      - generate(...)
+      - built‑in token accounting and (optional) truncation
+    """
+
+    def __init__(
+        self,
+        provider: ChatProvider,
+        args: ModelArguments,
+        metadata: ModelMetadata,
+    ):
+        self.provider = provider
         self.args = args
         self.metadata = metadata
-        self.stats = APIStats()
+        self.stats = APIStats()  # your existing stats class
 
-    def generate(self, system_prompt: str, prompt: str,
-                 include_tokens: bool = False, truncate: bool = True) -> str:
-        # to be implemented in subclasses
-        raise NotImplementedError("use a subclass of BaseModel")
+    def generate(
+        self,
+        system_prompt: str,
+        prompt: str,
+        include_tokens: bool = False,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        response_format: Any = None,
+        truncate: bool = True,
+    ) -> Any:
+        """
+        Build messages, optionally truncate, call the provider,
+        update costs, and return either (msg, in_t, out_t) or msg only.
+        """
+        # 1. construct message list
+        messages: List[Dict[str,str]] = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user",   "content": prompt},
+        ]
 
-    def desc(self) -> str:
-        # to be implemented in subclasses
-        raise NotImplementedError("use a subclass of BaseModel")
+        # 2. truncate if needed
+        if truncate:
+            messages = self._truncate_conversation(messages)
 
-    def estimate_tokens(self, text: str) -> int:
-        # rough estimate: one token per four characters
-        return len(text) // 4
+        # 3. pick config
+        temp = temperature if temperature is not None else self.args.temperature
+        mtok = max_tokens if max_tokens is not None else self.args.max_tokens
 
-    def total_estimated_tokens(self, messages: List[Dict[str, Any]]) -> int:
-        # sum token estimates for each message content
-        return sum(self.estimate_tokens(m["content"]) for m in messages)
-
-    def update_stats(self, input_tokens: int, output_tokens: int) -> float:
-        # compute cost and update stats counters
-        cost = (
-            self.metadata.cost_per_input_token * input_tokens
-            + self.metadata.cost_per_output_token * output_tokens
+        # 4. send to provider
+        raw = self.provider.create_completion(
+            model=self.args.model_name,
+            messages=messages,
+            temperature=temp,
+            max_tokens=mtok,
+            response_format=response_format,
         )
-        self.stats.total_cost += cost
-        self.stats.instance_cost += cost
-        self.stats.tokens_sent += input_tokens
-        self.stats.tokens_received += output_tokens
-        self.stats.api_calls += 1
-        return cost
 
-    def truncate_conversation(
-        self,
-        messages: List[Dict[str, str]],
-        max_tokens: int
-    ) -> List[Dict[str, str]]:
-        # always preserve the system prompt at index 0
-        system = messages[0]
-        tokens_used = self.estimate_tokens(system["content"])
-        kept = []
+        # 5. parse response
+        msg, in_tok, out_tok = self.provider.parse_response(raw, include_tokens)
 
-        # include most recent messages until max_tokens is reached
+        # 6. update stats (if we know tokens)
+        if include_tokens and in_tok is not None and out_tok is not None:
+            cost = (
+                in_tok  * self.metadata.cost_per_input_token +
+                out_tok * self.metadata.cost_per_output_token
+            )
+            self.stats.total_cost      += cost
+            self.stats.instance_cost   = cost
+            self.stats.tokens_sent    += in_tok
+            self.stats.tokens_received+= out_tok
+            self.stats.api_calls      += 1
+
+        return (msg, in_tok, out_tok) if include_tokens else msg
+
+    def _truncate_conversation(self, messages: List[Dict[str,str]]) -> List[Dict[str,str]]:
+        """
+        Keep the system prompt plus as many most recent messages
+        as fit under TOTAL_TOKENS_LIMIT - max_tokens.
+        """
+        # quick token estimate (1 token ~4 chars)
+        def est_tokens(text: str) -> int:
+            return len(text) // 4
+
+        keep = [messages[0]]
+        used = est_tokens(messages[0]["content"])
+        allowed = TOTAL_TOKENS_LIMIT - self.args.max_tokens
+
+        # walk from the end backwards
         for msg in reversed(messages[1:]):
-            tok = self.estimate_tokens(msg["content"])
-            if tokens_used + tok <= max_tokens:
-                kept.append(msg)
-                tokens_used += tok
-
-        kept.reverse()
-        # if truncated, insert a notice before user messages
-        if len(kept) < len(messages) - 1:
-            notice = {
+            tok = est_tokens(msg["content"])
+            if used + tok <= allowed:
+                keep.append(msg)
+                used += tok
+        keep.reverse()
+        if len(keep) < len(messages):
+            # insert a notice
+            keep.insert(1, {
                 "role": "system",
-                "content": "note: previous conversation messages were truncated due to token limits."
-            }
-            kept.insert(0, notice)
+                "content": "⚠️ previous messages truncated due to length."
+            })
+        return keep
 
-        return [system] + kept
+class BaseEmbeddingModel:
+    """
+    Wraps any EmbeddingProvider (HF, Ollama, etc.) to expose a
+    simple .encode(...) method.
+    """
 
-    def adjust_conversation(
+    def __init__(
         self,
-        conversation: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
-        # ensure input + desired output fit within the total token limit
-        desired_output = self.args.max_tokens
-        allowed_input = TOTAL_TOKENS_LIMIT - desired_output
-
-        if self.total_estimated_tokens(conversation) > allowed_input:
-            conversation = self.truncate_conversation(conversation, allowed_input)
-        return conversation
-    
-
-class EmbeddingModel:
-    def __init__(self, provider: EmbeddingProvider):
+        provider: EmbeddingProvider,
+        args: EmbeddingArguments,
+    ):
         self.provider = provider
+        self.args = args
 
     def encode(self, texts: List[str]) -> List[List[float]]:
-        # you could add batching or caching here
+        """
+        Returns a list of embedding vectors, one per input string.
+        """
         return self.provider.embed(texts)

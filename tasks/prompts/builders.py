@@ -49,7 +49,8 @@ def format_demonstrations(
 def build_task_prompt(
     source: Tuple[str, List[str], List[str], List[str], List[str]],
     target: Tuple[str, List[str], List[str], List[str], List[str]],
-    examples: Optional[List[Tuple[Any, Any, int, int]]] = None
+    examples: Optional[List[Tuple[Any, Any, int, int]]] = None,
+    reasoning: bool = False,
 ) -> Tuple[str, str]:
     """
     Build (system, user) prompts for the main task.

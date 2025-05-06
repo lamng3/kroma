@@ -14,13 +14,10 @@ class OntologyLoader(ABC):
     """Abstract base for ontology data loaders."""
     @abstractmethod
     def load(self) -> Tuple[
-        Dict[Tuple[str, str], Any],
-        Dict[Tuple[str, str], Any],
-        List[Tuple[Tuple[str, str], Tuple[str, str], str]]
+        Dict[Tuple[str, str], Any],  # source graph
+        Dict[Tuple[str, str], Any],  # target graph
+        List[Tuple[Tuple[str, str], Tuple[str, str], str]]  # alignments
     ]:
-        """
-        Returns G1, G2, and a list of alignment triples.
-        """
         pass
 
 
@@ -42,24 +39,24 @@ class CsvAlignmentLoader(OntologyLoader):
         for path in self.csv_paths:
             reader = csv.DictReader(Path(path).open(encoding="utf-8"))
             for row in reader:
-                if self.dataset == "ncit-doid":
+                if self.dataset == 'ncit-doid':
                     s_lbl, s_uri = row["src_code"].strip(), row["src_ety"].strip()
                     t_lbl, t_uri = row["tgt_code"].strip(), row["tgt_ety"].strip()
                     candidates = ast.literal_eval(row.get("tgt_cands", "[]"))
                     truth = row.get("score", "0").strip()
                     for cand in candidates or [t_uri]:
-                        lbl = "1" if cand == t_uri and truth == "1" else "0"
-                        cand_lbl = cand.split("#")[-1] if "#" in cand else cand
+                        lbl = '1' if (cand == t_uri and truth == '1') else '0'
+                        cand_lbl = cand.split('#')[-1] if '#' in cand else cand
                         alignments.append(((s_lbl, s_uri), (cand_lbl, cand), lbl))
                 else:
-                    s_lbl, s_uri = row.get("source", ""), row.get("source_uri", "")
-                    t_lbl, t_uri = row.get("target", ""), row.get("target_uri", "")
-                    lbl = row.get("Relation", row.get("relation", "1")).strip()
+                    s_lbl, s_uri = row.get('source',''), row.get('source_uri','')
+                    t_lbl, t_uri = row.get('target',''), row.get('target_uri','')
+                    lbl = row.get('Relation', row.get('relation','1')).strip()
                     alignments.append(((s_lbl, s_uri), (t_lbl, t_uri), lbl))
 
-                # ensure nodes exist in both graphs
-                G1[(s_lbl, s_uri)]
-                G2[(t_lbl, t_uri)]
+                # ensure nodes appear
+                G1.setdefault((s_lbl, s_uri), [])
+                G2.setdefault((t_lbl, t_uri), [])
 
         return G1, G2, alignments
 
@@ -75,33 +72,28 @@ class OwlOntologyLoader(OntologyLoader):
         List[Tuple[Tuple[str, str], Tuple[str, str], str]]
     ]:
         g = Graph()
-        g.parse(self.owl_path, format="xml")
+        g.parse(self.owl_path, format='xml')
 
-        # collect classes
         classes = {}
         for s, _, o in g.triples((None, RDF.type, None)):
             if o in (OWL.Class, RDFS.Class):
                 classes[s] = _get_uri_name(str(s))
 
-        # build parent-child map
         G1 = defaultdict(set)
         for s, _, o in g.triples((None, RDFS.subClassOf, None)):
             if s in classes and o in classes:
                 G1[(classes[o], str(o))].add((classes[s], str(s)))
 
-        # collect equivalences as synonyms
         synonyms = defaultdict(set)
         for s, _, o in g.triples((None, OWL.equivalentClass, None)):
             if s in classes and o in classes:
                 synonyms[classes[s]].add(classes[o])
                 synonyms[classes[o]].add(classes[s])
 
-        # no gold alignments in pure OWL loading
         return G1, synonyms, []
 
 
 def _get_uri_name(uri: str) -> str:
-    """Helper to extract the fragment or last path component as label."""
-    if "#" in uri:
-        return uri.split("#")[-1]
-    return uri.rstrip("/").split("/")[-1].lower()
+    if '#' in uri:
+        return uri.split('#')[-1]
+    return uri.rstrip('/').split('/')[-1].lower()

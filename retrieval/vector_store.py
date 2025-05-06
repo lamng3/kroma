@@ -1,61 +1,54 @@
 import numpy as np
-import faiss                    # make sure `faiss-cpu` is installed
 from typing import List, Tuple, Any
+
 
 class VectorStore:
     """
-    A simple FAISS‐backed vector store for RAG:
-      - call .add(texts, embeddings, ids)
-      - call .query(query_embedding, top_k) to get (id, score) pairs
+    In‐memory vector store for concept embeddings.
+    - .add(ids, embeddings)
+    - .query(query_emb, top_k) → List[(id, score)]
     """
+    def __init__(self):
+        # list of external IDs (e.g. concept codes)
+        self.ids: List[Any] = []
+        # will become a (N × D) array once data is added
+        self._matrix: np.ndarray = np.zeros((0, 0), dtype='float32')
 
-    def __init__(self, dim: int, index_factory: str = "Flat"):
+    def add(self, ext_ids: List[Any], embeddings: List[List[float]]) -> None:
         """
+        Add a batch of embeddings.
         Args:
-          dim: the dimensionality of your embedding vectors
-          index_factory: FAISS index type, e.g. "Flat", "IVF100,Flat", "HNSW32"
+          ext_ids: list of same length as embeddings; your concept identifiers
+          embeddings: list of float vectors (all same length D)
         """
-        # build FAISS index
-        self.index = faiss.index_factory(dim, index_factory)
-        self.id_to_text = {}
-        self.next_id = 0
+        embs = np.vstack(embeddings).astype('float32')  # shape = (n, D)
+        if self._matrix.size == 0:
+            # first batch
+            self._matrix = embs
+        else:
+            # stack on existing
+            self._matrix = np.vstack([self._matrix, embs])
+        self.ids.extend(ext_ids)
 
-    def add(self, texts: List[str], embeddings: List[List[float]], ids: List[Any] = None):
+    def query(self, query_emb: List[float], top_k: int = 5) -> List[Tuple[Any, float]]:
         """
-        Index a batch of documents.
-
-        Args:
-          texts: original text snippets
-          embeddings: list of float vectors (length == len(texts))
-          ids: optional external identifiers for each text; if None, auto‐assigned
+        Return top_k nearest neighbors under cosine similarity.
         """
-        embeddings_np = np.vstack(embeddings).astype('float32')
-        n = embeddings_np.shape[0]
+        if self._matrix.size == 0:
+            return []
+        q = np.array(query_emb, dtype='float32').reshape(1, -1)  # (1, D)
+        # normalize
+        q_norm = q / np.linalg.norm(q, axis=1, keepdims=True)
+        M_norm = self._matrix / np.linalg.norm(self._matrix, axis=1, keepdims=True)
+        # cosine similarities
+        sims = (M_norm @ q_norm.T).reshape(-1)  # shape = (N,)
+        # get top_k indices
+        idxs = np.argsort(-sims)[:top_k]
+        return [(self.ids[i], float(sims[i])) for i in idxs]
 
-        if ids is None:
-            ids = list(range(self.next_id, self.next_id + n))
-        ids_np = np.array(ids, dtype='int64')
-
-        # add to FAISS and to mapping
-        self.index.add_with_ids(embeddings_np, ids_np)
-        for _id, text in zip(ids, texts):
-            self.id_to_text[_id] = text
-
-        self.next_id += n
-
-    def query(self, query_embedding: List[float], top_k: int = 5) -> List[Tuple[Any, float]]:
+    def get_text(self, ext_id: Any) -> str:
         """
-        Retrieve the top_k nearest neighbors for a query vector.
-
-        Returns:
-          List of (id, score) sorted by score descending.
+        If you also stored a mapping ext_id → text elsewhere,
+        override or extend this method. By default returns str(ext_id).
         """
-        q = np.array(query_embedding, dtype='float32').reshape(1, -1)
-        D, I = self.index.search(q, top_k)
-        # FAISS returns distances; for inner product indexes higher is better, for L2 lower is better.
-        # Here we assume Flat (L2) so we invert sign for “score.”
-        results = [(int(I[0,i]), -float(D[0,i])) for i in range(I.shape[1])]
-        return results
-
-    def get_text(self, _id: Any) -> str:
-        return self.id_to_text.get(_id, "")
+        return str(ext_id)

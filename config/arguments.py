@@ -2,6 +2,14 @@ from dataclasses import dataclass, fields
 from utils.env import get_env
 
 @dataclass
+class APIStats():
+    total_cost: float = 0
+    instance_cost: float = 0
+    tokens_sent: int = 0
+    tokens_received: int = 0
+    api_calls: int = 0
+
+@dataclass
 class ModelArguments:
     model_name: str
     api_key: str = None

@@ -1,6 +1,7 @@
 # default models
-DEFAULT_CHAT_MODEL = "gpt-4o-mini"
-DEFAULT_EMBED_MODEL = "all-MiniLM-L6-v2"
+DEFAULT_CHAT_BACKEND = "togetherai"
+DEFAULT_CHAT_MODEL = "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free"
+DEFAULT_EMBED_MODEL = "allenai/scibert_scivocab_uncased"
 
 # total number of tokens
 TOTAL_TOKENS_LIMIT = 8000

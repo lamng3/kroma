@@ -1,23 +1,21 @@
 import json
+import os
 from pathlib import Path
 from typing import Tuple, Set, TextIO, Dict, Any, List
-
 
 def load_config(filepath: str) -> Any:
     """
     Load configuration from a JSON or JSONL file. Returns:
       - dict for .json
-      - list of dicts for .jsonl
+      - dict for single-line .jsonl
+      - list of dicts for multi-line .jsonl
     """
     path = Path(filepath)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {filepath}")
-    if path.suffix == '.json':
-        return json.loads(path.read_text(encoding='utf-8'))
-    elif path.suffix == '.jsonl':
-        return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line]
-    else:
-        raise ValueError(f"Unsupported config extension: {path.suffix}")
+    with open(path, "r") as file:
+        data = json.load(file)
+    return data
 
 
 def load_cache(filepath: str, key_field: str = 'concept_code') -> Dict[str, Dict[str, List[Any]]]:
@@ -63,56 +61,42 @@ def get_predicted_pairs_and_file(
     bisim: bool = True
 ) -> Tuple[Set[Tuple[str,str]], TextIO]:
     """
-    Determine predictions JSONL path, load existing pairs, and open file handle.
-    Returns (set of (source, target), file handle in append+ mode).
+    Store all predictions under results/<mode>/<dataset>/ with a single JSONL named:
+      {agent_name}_{task_name}.jsonl
     """
-    # decide subfolder and filename
-    suffix = f"{agent_name or method_name}_predictions.jsonl"
-    if debate:
-        subdir = f"results/debate/{task_name}"
-    elif active_learning:
-        subdir = f"results/active/{task_name}"
-    elif compare_models:
-        subdir = f"results/compare/{task_name}"
-    elif baseline:
-        subdir = f"results/baseline/{task_name}"
-    elif reasoning:
-        subdir = f"results/reasoning/{task_name}"
-    elif size:
-        subdir = f"results/scale/{task_name}"
-    elif not bisim:
-        subdir = f"results/nobisim/{task_name}"
-    else:
-        subdir = f"results/{task_name}"
+    # 1) decide mode folder
+    mode = "baseline" if baseline else "results"
 
-    # override filename for scale/reasoning if needed
-    if size and not reasoning:
-        suffix = f"{size}_predictions.jsonl"
-    if reasoning:
-        suffix = f"{size or 'all'}_predictions.jsonl"
-    if active_learning or compare_models or baseline or not bisim:
-        suffix = f"{agent_name}_predictions.jsonl"
+    # 2) sanitize agent_name to a filesystem‐safe string
+    safe_agent = agent_name.replace("/", "-")
 
-    base_dir = Path("experiments/kroma-eval") / subdir
-    base_dir.mkdir(parents=True, exist_ok=True)
-    filepath = base_dir / suffix
+    # 3) build directory: results/<mode>/<task_name>/
+    results_dir = Path("results") / mode / task_name
+    results_dir.mkdir(parents=True, exist_ok=True)
 
+    # 4) build filename and full path
+    filename = f"{safe_agent}_{task_name}.jsonl"
+    filepath = results_dir / filename
+
+    # 5) ensure the file exists
+    filepath.touch(exist_ok=True)
+
+    # 6) load existing predictions
     predicted: Set[Tuple[str,str]] = set()
-    if filepath.exists():
-        for line in filepath.read_text(encoding='utf-8').splitlines():
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-                src = rec.get('source')
-                tgt = rec.get('target')
-                if src and tgt:
-                    predicted.add((src, tgt))
-            except json.JSONDecodeError:
-                continue
+    for line in filepath.read_text(encoding='utf-8').splitlines():
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+            src, tgt = rec.get("source"), rec.get("target")
+            if src and tgt:
+                predicted.add((src, tgt))
+        except json.JSONDecodeError:
+            continue
 
-    # open file for append+read
-    file_handle = filepath.open('a+', encoding='utf-8')
-    file_handle.seek(0)
+    # 7) open for append+read and seek to end
+    handle = filepath.open("r+", encoding="utf-8")
+    handle.seek(0, os.SEEK_END)
+
     print(f"Using prediction file: {filepath}")
-    return predicted, file_handle
+    return predicted, handle
