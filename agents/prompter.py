@@ -89,6 +89,7 @@ def inference(
             sys_p, base_p = build_round_prompt(src, tgt, history, perturb=False)
 
         user_p = context_block + base_p
+        print(user_p)
 
         for agent in agents.values():
             resp, inp, out = agent.generate(sys_p, user_p, include_tokens=True, truncate=False)
