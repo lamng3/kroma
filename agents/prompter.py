@@ -9,7 +9,7 @@ from agents.utils import (
     active_learning_score,
     simple_match,
 )
-from agents.factory import create_agents
+from agents.factory import create_agents, create_agents_from_config
 from tasks.query_engine import query
 from tasks.prompts.builders import (
     build_task_prompt,
@@ -36,6 +36,7 @@ def initialize_graph(OS: Dict[Any, Any], OT: Dict[Any, Any]) -> None:
 
 
 def inference(
+    debate: bool,
     backend: str,
     model_name: str,
     source_term: Tuple[str, str],
@@ -45,6 +46,7 @@ def inference(
     options: List[str],
     embed_model,               # EmbeddingModel from factory
     store: VectorStore,        # prebuilt vector store
+    agent_configs: List[Dict[str, str]],
     n_rounds: int = 3,
     dropout: float = 0.5,
     reasoning: bool = False,
@@ -67,7 +69,11 @@ def inference(
             return 1, {'input_token': 0, 'output_token': 0, 'api_call_cnt': 0}, 10, True
 
     # 2) normal multi‑round debate
-    agents = create_agents(1 if bisim else len(pcmaps), backend, model_name)
+    if debate:
+        agents = create_agents_from_config(agent_configs)
+    else:
+        agents = create_agents(1, backend, model_name)
+        n_rounds = 1
     metrics = {'input_token': 0, 'output_token': 0, 'api_calls': 0}
 
     # expand terms with metadata

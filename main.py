@@ -62,6 +62,7 @@ parser.add_argument("--baseline", action="store_true")
 parser.add_argument("--active_learning", action="store_true")
 parser.add_argument("--compare_models", action="store_true")
 parser.add_argument("--bisim", action="store_true")
+parser.add_argument("--debate", action="store_true", default="false")
 args = parser.parse_args()
 
 # ----------------------------------------------------------------------------
@@ -74,6 +75,11 @@ agent_type, agent_name = method_cfg['agent_type'], method_cfg['agent_name']
 method_name = method_cfg['method_name']
 task_key = method_cfg['task']
 query_opts = method_cfg['query_options']
+
+agent_configs = method_cfg['agent_configs'] if 'agent_configs' in method_cfg else []
+n_agents = method_cfg['n_agents'] if 'n_agents' in method_cfg else 1
+n_rounds = method_cfg['n_rounds'] if 'n_rounds' in method_cfg else 1
+dropout = method_cfg['dropout'] if 'dropout' in method_cfg else 0.0
 
 ds_cfg_path = Path("experiments/configs/datasets") / f"{task_key}.json"
 logger.info(f"Dataset config path: {ds_cfg_path}")
@@ -205,11 +211,13 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
         context_block = meta_block + rag_block
         agents = create_agents(1, agent_type, agent_name)
         pred, llm_metrics, conf, accept = agent_inference(
+            debate=False if args.debate == "false" else True,
+            agent_configs=agent_configs,
             backend=agent_type, model_name=agent_name,
             source_term=(src_keycode, src_node), target_term=(tgt_keycode, tgt_node),
             pcmaps={'source': OS_map, 'target': OT_map}, dictionary=dictionary,
             options=query_opts, embed_model=embedder,
-            store=(src_store, tgt_store), n_rounds=1, dropout=0.0,
+            store=(src_store, tgt_store), n_rounds=n_rounds, dropout=dropout,
             reasoning=args.reasoning, active_learning=args.active_learning,
             f1_score=f1, bisim=args.bisim, context=context_block
         )
