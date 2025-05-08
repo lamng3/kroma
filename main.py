@@ -89,6 +89,8 @@ csv_paths = [Path(ds_cfg['csv_folder']) / f"{n}.csv" for n in ds_cfg['datasets']
 dict_paths = load_config("experiments/configs/dictionary.json")
 dictionary = {k: load_cache(dict_paths[k]) for k in dict_paths}
 
+n_shot_demo = 5
+
 # ----------------------------------------------------------------------------
 # PREDICTION FILES
 # ----------------------------------------------------------------------------
@@ -184,6 +186,17 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     sim_score = float(np.dot(src_emb, tgt_emb) / (np.linalg.norm(src_emb) * np.linalg.norm(tgt_emb)))
     logger.info(f"Pair cosine(sim)={sim_score:.3f} for {src_label} ↔ {tgt_label}")
 
+    demonstrations = [r for r in predicted_pairs]
+    demonstrations = random.sample(demonstrations, min(n_shot_demo, len(demonstrations)))
+    demo_block = "Here are some examples of source↔target → relation:\n"
+    for rec in demonstrations:
+        if rec['pred_relation'] == rec['true_relation']:
+            demo_block += (
+                f"- Source: {rec['source_label']}  \n"
+                f"  Target: {rec['target_label']}  \n"
+                f"  Relation: {"Related" if rec['true_relation'] == 0 else "Not related"}\n\n"
+            )
+
     if args.bisim and (src_keycode, tgt_keycode) in bisimulation(compressed_graph):
         pred, conf, accept = 1, 10, True
         llm_metrics = dict(input_token=0, output_token=0, api_call_cnt=0)
@@ -208,7 +221,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
             "Source context:\n- " + "\n- ".join(src_ctx) +
             "\n\nTarget context:\n- " + "\n- ".join(tgt_ctx) + "\n\n"
         )
-        context_block = meta_block + rag_block
+        context_block = demo_block + meta_block + rag_block
         agents = create_agents(1, agent_type, agent_name)
         pred, llm_metrics, conf, accept = agent_inference(
             debate=False if args.debate == "false" else True,
