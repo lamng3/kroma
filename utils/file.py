@@ -95,7 +95,7 @@ def get_predicted_pairs_and_file(
             continue
 
     # 7) open for append+read and seek to end
-    handle = filepath.open("r+", encoding="utf-8")
+    handle = filepath.open("a+", encoding="utf-8")
     handle.seek(0, os.SEEK_END)
 
     print(f"Using prediction file: {filepath}")

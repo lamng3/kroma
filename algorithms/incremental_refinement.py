@@ -6,6 +6,12 @@ Node = Tuple[str, str]
 Graph = Dict[Node, Set[Node]]
 Edge = Tuple[Node, Node]
 
+def merge_graphs(*graphs: Dict[Any, Set[Any]]) -> Dict[Any, Set[Any]]:
+    merged: Dict[Any, Set[Any]] = {}
+    for G in graphs:
+        for u, vs in G.items():
+            merged.setdefault(u, set()).update(vs)
+    return merged
 
 def update_ranks_for_delta(
     G_r: Graph,
@@ -92,8 +98,6 @@ def inc_rcm_plus(
 
 
 def incremental_refinement(
-    O_S: Graph,
-    O_T: Graph,
     G_r: Graph,
     delta_G: List[Edge],
     rank_attr: Dict[Node, int]

@@ -17,9 +17,9 @@ def clean_terms(terms: List[str]) -> List[str]:
     return [t for t in terms if len(t) >= 2 and '_' not in t and not any(c.isdigit() for c in t)]
 
 
-def list_to_str(items: List[str]) -> str:
-    """Convert list to comma‑separated string (or 'none')."""
-    return ', '.join(items) if items else 'none'
+def list_to_str(items: List[Any]) -> str:
+    """Convert list of arbitrary items into a comma-separated string (or 'none')."""
+    return ', '.join(map(str, items)) if items else 'none'
 
 
 # ----------------------------------------------------------------------------

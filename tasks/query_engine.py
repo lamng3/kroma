@@ -13,6 +13,8 @@ from tasks.query_templates import (
 from inference.factory import create_embedding_model
 from sklearn.metrics.pairwise import cosine_similarity
 
+from urllib.parse import urlparse
+
 import nltk
 from nltk.corpus import words, wordnet
 
@@ -25,6 +27,22 @@ ENGLISH_WORDS = set(words.words())
 # initialize SciBERT embedder via our factory
 scibert = create_embedding_model("huggingface", "allenai/scibert_scivocab_uncased")
 
+def _clean_uri_list(uri_list: List[str]) -> List[str]:
+    """
+    Given a list of URI strings (possibly pipe-separated), extract only the final segment
+    after the last '/' or '#'.
+    """
+    cleaned = []
+    for u in uri_list:
+        for part in u.split('|'):
+            parsed = urlparse(part)
+            # prefer path segment, fallback to whole string
+            segment = parsed.path.rstrip('/').split('/')[-1] if parsed.path else part
+            # handle fragments
+            if '#' in segment:
+                segment = segment.split('#')[-1]
+            cleaned.append(segment)
+    return cleaned
 
 def _dict_query(
     code: str,
@@ -40,6 +58,11 @@ def _dict_query(
     children  = rec.get('children', [])
     synonyms  = rec.get('synonyms', [])
     labels    = rec.get('labels', [])
+    # clean parent and child URI lists to only their final segments
+    parents   = _clean_uri_list(parents)
+    children  = _clean_uri_list(children)
+    parents  = [urlparse(u).path.lstrip('/') for u in parents]
+    children = [urlparse(u).path.lstrip('/') for u in children]
     # dedupe & truncate
     return (
         list(dict.fromkeys(parents))[:topk],
@@ -47,8 +70,6 @@ def _dict_query(
         list(dict.fromkeys(synonyms))[:topk],
         list(dict.fromkeys(labels))[:topk],
     )
-
-
 def _sparql_query(
     endpoint: str,
     tmpl,

@@ -2,6 +2,7 @@ import random
 import itertools
 from collections import defaultdict
 from typing import List, Tuple, Dict, Any
+from tasks.query_engine import query
 
 random.seed(2025)
 
@@ -45,24 +46,30 @@ def build_ontology_matching_task(
     G1: Dict[Tuple[str, str], Any],
     G2: Dict[Tuple[str, str], Any],
     alignments: List[Tuple[Any, Any, str]],
-    sample_sz: int = 50
+    sample_sz: int = 50,
+    dictionary: Dict[str, Any] = None,
+    query_opts: List[str] = None
 ) -> Tuple[
     Dict[Tuple[str, str], Any],
     Dict[Tuple[str, str], Any],
     List[Tuple[Any, Any, str]],
+    Dict[Tuple[str, str], Dict[str, List[str]]],
+    Dict[Tuple[str, str], Dict[str, List[str]]],
     Dict[str, set],
     Dict[str, set]
 ]:
     """
-    Samples up to sample_sz positives and negatives, then returns:
-      G1, G2, sampled_alignments, 
-      {'parent':parent_map1,'child':child_map1},
-      {'parent':parent_map2,'child':child_map2}
+    Samples up to sample_sz positives and negatives, enriches each node's metadata,
+    then returns:
+      G1, G2, sampled_alignments,
+      OS_meta, OT_meta,
+      {'parent': parent_map1, 'child': child_map1},
+      {'parent': parent_map2, 'child': child_map2}
     """
+    # 1) sample positives/negatives
     positives = [m for m in alignments if m[2] == "1"]
     negatives = [m for m in alignments if m[2] != "1"]
 
-    # generate negatives if none exist
     if not negatives:
         seen = {(s[0], t[0]) for s, t, _ in alignments}
         negatives = [
@@ -76,7 +83,40 @@ def build_ontology_matching_task(
     sampled = pos_sel + neg_sel
     random.shuffle(sampled)
 
+    # 2) build parent/child maps
     pm1, cm1 = build_parent_child_map(G1)
     pm2, cm2 = build_parent_child_map(G2)
 
-    return G1, G2, sampled, {"parent": pm1, "child": cm1}, {"parent": pm2, "child": cm2}
+    # 3) enrich metadata using URI lookup
+    OS_meta: Dict[Tuple[str, str], Dict[str, List[str]]] = {}
+    OT_meta: Dict[Tuple[str, str], Dict[str, List[str]]] = {}
+    if dictionary and query_opts:
+        for key in G1:
+            lookup_key = key[0]  # use source URI as the dictionary lookup
+            p, c, s, l = query(
+                lookup_key,
+                {'parent': pm1, 'child': pm1},
+                dictionary,
+                query_opts
+            )
+            OS_meta[lookup_key] = {'parents': p, 'children': c, 'synonyms': s, 'labels': l}
+
+        for key in G2:
+            lookup_key = key[0]
+            p, c, s, l = query(
+                lookup_key,
+                {'parent': pm2, 'child': pm2},
+                dictionary,
+                query_opts
+            )
+            OT_meta[lookup_key] = {'parents': p, 'children': c, 'synonyms': s, 'labels': l}
+
+    return (
+        G1,
+        G2,
+        sampled,
+        OS_meta,
+        OT_meta,
+        {'parent': pm1, 'child': cm1},
+        {'parent': pm2, 'child': cm2}
+    )
