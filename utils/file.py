@@ -60,45 +60,43 @@ def get_predicted_pairs_and_file(
     compare_models: bool = False,
     bisim: bool = True
 ) -> Tuple[Set[Tuple[str,str]], TextIO]:
-    """
-    Store all predictions under results/<mode>/<dataset>/ with a single JSONL named:
-      {agent_name}_{task_name}.jsonl
-    """
-    # 1) decide mode folder
+    # decide mode folder
     mode = "baseline" if baseline else "results"
 
-    # 2) sanitize agent_name to a filesystem‐safe string
+    # sanitize agent_name to a filesystem‐safe string
     safe_agent = agent_name.replace("/", "-")
 
-    # 3) build directory: results/<mode>/<task_name>/
+    # build directory: results/<mode>/<task_name>/
     results_dir = Path("results") / mode / task_name
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    # 4) build filename and full path
+    # build filename and full path
     filename = f"{safe_agent}_{task_name}.jsonl"
     filepath = results_dir / filename
 
-    # 5) ensure the file exists
+    # ensure the file exists
     filepath.touch(exist_ok=True)
 
-    # 6) load existing predictions
+    # load existing predictions
     keys: Set[Tuple[str,str]] = set()
-    predicted: Set[Tuple] = set()
+    predicted: List[Dict] = []
     for line in filepath.read_text(encoding='utf-8').splitlines():
         if not line.strip():
             continue
         try:
             rec = json.loads(line)
-            src, tgt = rec.get("source"), rec.get("label")
-            if src and tgt:
-                keys.add((src, tgt))
-                predicted.add(rec)
+            key = (rec['source'], rec['target'])
+            if key not in keys:
+                keys.add(key)
+                predicted.append(rec)
         except json.JSONDecodeError:
             continue
 
-    # 7) open for append+read and seek to end
+    # open for append+read and seek to end
     handle = filepath.open("a+", encoding="utf-8")
     handle.seek(0, os.SEEK_END)
 
     print(f"Using prediction file: {filepath}")
+    print(keys)
+    print(predicted)
     return keys, predicted, handle

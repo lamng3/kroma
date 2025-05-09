@@ -245,7 +245,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
 
     y_true.append(int(label)); y_pred.append(int(pred))
 
-    if accept:
+    if not accept:
         compressed_graph, expert_q = incremental_refinement(
             G_r=compressed_graph,
             delta_G=[(src_keycode, tgt_keycode)], 

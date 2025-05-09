@@ -125,7 +125,7 @@ def inference(
         accept = active_learning_score(conf, f1_score) > 0
 
     # 3) incremental refinement
-    if accept:
+    if not accept:
         delta = [(source_term[0], target_term[0])]
         compressed_graph, newQ = incremental_refinement(
             G_r=compressed_graph,
