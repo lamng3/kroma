@@ -18,3 +18,21 @@ Our paper features models provided by `TogetherAI`'s API. So please supply your 
 ## Experiment Reproduction
 We supply a sample script to run an experiment on `ENVO-SWEET` track with `Llama-3.3-70B` in the `scripts/run_envo_sweet.sh` .
 
+## Result Digestion
+The final results can be find under 2 folders. For example, after running the `ENVO-SWEET` experiment, you can find the results under `results/baseline/envo_sweet` for accepted alignments and `reviews/baseline/envo_sweet` for reviews needed by experts
+
+## Codebase Design and Contribution
+Should you want to add a new evaluation, you may consider adding an `experiments/configs/method/<llm>` folder for the LLMs you want to evaluated on, and supply corresponding `.jsonl` for the dataset and the configurations you want to evaluate on. For a new dataset, add a folder `experiments/configs/dataset/<dataset>.json` to point towards the dataset you wish to add.
+
+The OAEI datasets will be stored at `experiments/datasets/OAEI/<track>/<dataset>`. If you want to test multiple times, we advised to cache the query results and provide a path to it at `experiments/configs/dictionary.json`.
+
+---
+
+Should you need to refer to this work or find our codebase useful, please consider citing our work as:
+```
+@inproceedings{2025_knowledge_retrieval_ontology_matching_llm,
+    title={KROMA: Knowledge Retrieval Ontology Matching using Large Language Model},
+    author={Anonymous},
+    year={2025},
+}
+```

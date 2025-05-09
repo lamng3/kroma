@@ -82,15 +82,17 @@ def get_predicted_pairs_and_file(
     filepath.touch(exist_ok=True)
 
     # 6) load existing predictions
-    predicted: Set[Tuple[str,str]] = set()
+    keys: Set[Tuple[str,str]] = set()
+    predicted: Set[Tuple] = set()
     for line in filepath.read_text(encoding='utf-8').splitlines():
         if not line.strip():
             continue
         try:
             rec = json.loads(line)
-            src, tgt = rec.get("source_label"), rec.get("target_label")
+            src, tgt = rec.get("source"), rec.get("label")
             if src and tgt:
-                predicted.add((src, tgt))
+                keys.add((src, tgt))
+                predicted.add(rec)
         except json.JSONDecodeError:
             continue
 
@@ -99,4 +101,4 @@ def get_predicted_pairs_and_file(
     handle.seek(0, os.SEEK_END)
 
     print(f"Using prediction file: {filepath}")
-    return predicted, handle
+    return keys, predicted, handle

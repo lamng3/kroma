@@ -94,7 +94,7 @@ n_shot_demo = 5
 # ----------------------------------------------------------------------------
 # PREDICTION FILES
 # ----------------------------------------------------------------------------
-predicted_pairs, prediction_file = get_predicted_pairs_and_file(
+predicted_keys, predicted_pairs, prediction_file = get_predicted_pairs_and_file(
     task_key, method_name, agent_name,
     debate=False, size=args.size,
     reasoning=args.reasoning, baseline=args.baseline,
@@ -177,7 +177,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     tgt_meta = OT_meta[tgt_keycode]
     src_label, tgt_label = list_to_str(src_meta['labels']), list_to_str(tgt_meta['labels'])
 
-    if (src_keycode, tgt_keycode) in predicted_pairs:
+    if (src_keycode, tgt_keycode) in predicted_keys:
         print("  • already done")
         continue
 
@@ -190,7 +190,6 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     demonstrations = random.sample(demonstrations, min(n_shot_demo, len(demonstrations)))
     demo_block = "Here are some examples of source↔target → relation:\n"
     for rec in demonstrations:
-        print(rec)
         if rec['pred_relation'] == rec['true_relation']:
             demo_block += (
                 f"The concept “{rec['source_label']}” and “{rec['target_label']}” "
@@ -232,7 +231,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
         for k in output_metrics['api_metrics']:
             output_metrics['api_metrics'][k] += llm_metrics.get(k, 0)
 
-    predicted_pairs.add((src_keycode, tgt_keycode))
+    predicted_keys.add((src_keycode, tgt_keycode))
     row = dict(
         source_label=src_label, target_label=tgt_label,
         source=src_keycode, source_uri=src_key[1],
