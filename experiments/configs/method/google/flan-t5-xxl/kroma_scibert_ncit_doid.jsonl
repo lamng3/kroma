@@ -1,8 +1,0 @@
-{
-    "agent_type": "huggingface",
-    "agent_name": "google/flan-t5-xxl",
-    "embedding_model": "allenai/scibert_scivocab_uncased",
-    "task": "ncit_doid",
-    "method_name": "kroma",
-    "query_options": ["ncit", "doid", "conceptnet", "wordnet"]
-}

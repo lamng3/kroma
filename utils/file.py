@@ -88,7 +88,7 @@ def get_predicted_pairs_and_file(
             continue
         try:
             rec = json.loads(line)
-            src, tgt = rec.get("source"), rec.get("target")
+            src, tgt = rec.get("source_label"), rec.get("target_label")
             if src and tgt:
                 predicted.add((src, tgt))
         except json.JSONDecodeError:

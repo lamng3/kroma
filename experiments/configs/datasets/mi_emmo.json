@@ -1,8 +1,0 @@
-{
-    "subtask": "mi_emmo",
-    "task_name": "ontology_matching",
-    "datasets": ["small"],
-    "dataset_type": "mi-emmo",
-    "csv_folder": "./experiments/dataset/OAEI/MSE/MI-EMMO",
-    "sample_sz": 1000
-}

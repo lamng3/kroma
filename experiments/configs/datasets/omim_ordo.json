@@ -1,8 +1,0 @@
-{
-    "subtask": "omim_ordo",
-    "task_name": "ontology_matching",
-    "datasets": ["small"],
-    "dataset_type": "omim-ordo",
-    "csv_folder": "./experiments/dataset/OAEI/BioLLM/omim-ordo",
-    "sample_sz": 1000
-}

@@ -190,6 +190,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     demonstrations = random.sample(demonstrations, min(n_shot_demo, len(demonstrations)))
     demo_block = "Here are some examples of source↔target → relation:\n"
     for rec in demonstrations:
+        print(rec)
         if rec['pred_relation'] == rec['true_relation']:
             demo_block += (
                 f"The concept “{rec['source_label']}” and “{rec['target_label']}” "

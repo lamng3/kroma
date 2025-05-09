@@ -1,8 +1,0 @@
-{
-    "subtask": "ncit_doid",
-    "task_name": "ontology_matching",
-    "datasets": ["small"],
-    "dataset_type": "ncit-doid",
-    "csv_folder": "./experiments/dataset/OAEI/BioLLM/snomed_fma",
-    "sample_sz": 1000
-}
