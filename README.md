@@ -16,7 +16,7 @@ Currently, our method features 6 datasets (Mouse-Human, NCIT-DOID, Nell-DBpedia,
 Our paper features models provided by `TogetherAI`'s API. So please supply your TogetherAI access token in the `.env` file. 
 
 ## Experiment Reproduction
-We supply a sample script to run an experiment on `ENVO-SWEET` track with `Llama-3.3-70B` in the `scripts/run_envo_sweet.sh` .
+We supply a sample script to run an experiment on `ENVO-SWEET` track with `Llama-3.3-70B` in the `scripts/run_envo_sweet.sh`. We provided a dynamic results saving to the script so that the results files will be automatically updated with the newest predicted pairs.
 
 ## Result Digestion
 The final results can be find under 2 folders. For example, after running the `ENVO-SWEET` experiment, you can find the results under `results/baseline/envo_sweet` for accepted alignments and `reviews/baseline/envo_sweet` for reviews needed by experts
