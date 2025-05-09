@@ -62,13 +62,13 @@ def inference(
     """
     global compressed_graph, rank_attr
 
-    # 1) bisimulation quick accept
+    # bisimulation quick accept
     if bisim:
         aligned = bisimulation(compressed_graph)
         if (source_term, target_term) in aligned:
             return 1, {'input_token': 0, 'output_token': 0, 'api_call_cnt': 0}, 10, True
 
-    # 2) normal multi‑round debate
+    # creating agents from config or duplicate single model
     if debate:
         agents = create_agents_from_config(agent_configs)
     else:
@@ -96,6 +96,7 @@ def inference(
     else:
         context_block = context
 
+    # inference, get results from LLMs
     history: List[Tuple[int, int]] = []
     for round_idx in range(n_rounds):
         if round_idx == 0:
@@ -124,7 +125,7 @@ def inference(
     if active_learning:
         accept = active_learning_score(conf, f1_score) > 0
 
-    # 3) incremental refinement
+    # incremental refinement
     if not accept:
         delta = [(source_term[0], target_term[0])]
         compressed_graph, newQ = incremental_refinement(

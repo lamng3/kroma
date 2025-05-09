@@ -66,7 +66,7 @@ def build_ontology_matching_task(
       {'parent': parent_map1, 'child': child_map1},
       {'parent': parent_map2, 'child': child_map2}
     """
-    # 1) sample positives/negatives
+    # sample positives/negatives
     positives = [m for m in alignments if m[2] == "1"]
     negatives = [m for m in alignments if m[2] != "1"]
 
@@ -83,11 +83,11 @@ def build_ontology_matching_task(
     sampled = pos_sel + neg_sel
     random.shuffle(sampled)
 
-    # 2) build parent/child maps
+    # build parent/child maps
     pm1, cm1 = build_parent_child_map(G1)
     pm2, cm2 = build_parent_child_map(G2)
 
-    # 3) enrich metadata using URI lookup
+    # enrich metadata using URI lookup
     OS_meta: Dict[Tuple[str, str], Dict[str, List[str]]] = {}
     OT_meta: Dict[Tuple[str, str], Dict[str, List[str]]] = {}
     if dictionary and query_opts:

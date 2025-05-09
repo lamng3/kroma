@@ -2,7 +2,7 @@ from collections import defaultdict, deque
 from typing import Dict, Iterable, Any, Tuple, List, Set
 
 # -----------------------------------------------------------------------------
-# Step 1: Compute node ranks in a DAG
+# Compute node ranks in a DAG
 # -----------------------------------------------------------------------------
 
 def compute_node_ranks(
@@ -32,7 +32,7 @@ def compute_node_ranks(
     return ranks
 
 # -----------------------------------------------------------------------------
-# Step 2: Bucket nodes by their rank
+# Bucket nodes by their rank
 # -----------------------------------------------------------------------------
 
 def bucket_by_rank(
@@ -51,7 +51,7 @@ def bucket_by_rank(
     return buckets, max_rank
 
 # -----------------------------------------------------------------------------
-# Step 3: Initial partition (all nodes in one block)
+# Initial partition (all nodes in one block)
 # -----------------------------------------------------------------------------
 
 def initialize_partition(
@@ -63,7 +63,7 @@ def initialize_partition(
     return [set(nodes)]
 
 # -----------------------------------------------------------------------------
-# Step 4: Collapse a block of nodes into a single representative
+# Collapse a block of nodes into a single representative
 # -----------------------------------------------------------------------------
 
 def collapse(
@@ -104,7 +104,7 @@ def collapse(
             graph[parent] = new_children
 
 # -----------------------------------------------------------------------------
-# Step 5: Refine partition at a given rank
+# Refine partition at a given rank
 # -----------------------------------------------------------------------------
 
 def refine_partition(
@@ -146,7 +146,7 @@ def refine_partition(
     return new_P
 
 # -----------------------------------------------------------------------------
-# Step 6: Top-level bisimulation
+# Top-level bisimulation
 # -----------------------------------------------------------------------------
 
 def bisimulation(
