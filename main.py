@@ -192,34 +192,28 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     for rec in demonstrations:
         if rec['pred_relation'] == rec['true_relation']:
             demo_block += (
-                f"- Source: {rec['source_label']}  \n"
-                f"  Target: {rec['target_label']}  \n"
-                f"  Relation: {"Related" if rec['true_relation'] == 0 else "Not related"}\n\n"
+                f"The concept “{rec['source_label']}” and “{rec['target_label']}” "
+                f"{'are related.' if rec['true_relation'] == 0 else 'do not appear to be related.'}\n\n"
             )
+
 
     if args.bisim and (src_keycode, tgt_keycode) in bisimulation(compressed_graph):
         pred, conf, accept = 1, 10, True
         llm_metrics = dict(input_token=0, output_token=0, api_call_cnt=0)
     else:
         meta_block = (
-            "Source meta:\n"
-            f"- parents: {', '.join(src_meta['parents'])}\n"
-            f"- children: {', '.join(src_meta['children'])}\n"
-            f"- synonyms: {', '.join(src_meta['synonyms'])}\n"
-            f"- labels: {', '.join(src_meta['labels'])}\n\n"
-            "Target meta:\n"
-            f"- parents: {', '.join(tgt_meta['parents'])}\n"
-            f"- children: {', '.join(tgt_meta['children'])}\n"
-            f"- synonyms: {', '.join(tgt_meta['synonyms'])}\n"
-            f"- labels: {', '.join(tgt_meta['labels'])}\n\n"
+            f"The source concept “{src_label}” has parents {', '.join(src_meta['parents'])}, children {', '.join(src_meta['children'])}, "
+            f"synonyms {', '.join(src_meta['synonyms'])}, and labels {', '.join(src_meta['labels'])}.\n"
+            f"The target concept “{tgt_label}” has parents {', '.join(tgt_meta['parents'])}, children {', '.join(tgt_meta['children'])}, "
+            f"synonyms {', '.join(tgt_meta['synonyms'])}, and labels {', '.join(tgt_meta['labels'])}.\n\n"
         )
         src_hits = src_store.query(src_emb, top_k=3)
         tgt_hits = tgt_store.query(tgt_emb, top_k=3)
         src_ctx = [f"{list_to_str(OS_meta[lbl]['labels'])}" for (lbl, uri), _ in src_hits if lbl in OS_meta]
         tgt_ctx = [f"{list_to_str(OT_meta[lbl]['labels'])}" for (lbl, uri), _ in tgt_hits if lbl in OT_meta]
         rag_block = (
-            "Source context:\n- " + "\n- ".join(src_ctx) +
-            "\n\nTarget context:\n- " + "\n- ".join(tgt_ctx) + "\n\n"
+            f"For the source concept “{src_label}”, the most similar context labels are: {', '.join(src_ctx)}. "
+            f"For the target concept “{tgt_label}”, the most similar context labels are: {', '.join(tgt_ctx)}.\n\n"
         )
         context_block = demo_block + meta_block + rag_block
         agents = create_agents(1, agent_type, agent_name)
@@ -259,7 +253,7 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
         )
         # print to console
         for eq in (expert_q or []): print("  → expert review:", eq)
-        # **append to CSV file**
+        # append to CSV file
         with review_file.open("a+") as rf:
             for (u, v) in expert_q or []:
                 rf.write(f"{src_key},{tgt_key},{u}->{v}\n")
