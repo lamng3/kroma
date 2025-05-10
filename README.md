@@ -11,7 +11,7 @@ pip install -r requirements.txt
 ```
 
 ## Dataset and Access Preparation
-Currently, our method features 6 datasets (Mouse-Human, NCIT-DOID, Nell-DBpedia, YAGO-Wikidata, ENVO-SWEET, MI-MatOnto). We provide 
+Currently, our method features 6 datasets (Mouse-Human, NCIT-DOID, Nell-DBpedia, YAGO-Wikidata, ENVO-SWEET, MI-MatOnto). Please provide the downloaded datasets in `experiments/dataset/`.
 
 Our paper features models provided by `TogetherAI`'s API. So please supply your TogetherAI access token in the `.env` file. 
 
