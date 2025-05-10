@@ -1,18 +1,14 @@
 {
     "ncit": "experiments/dataset/OAEI/BioLLM/ncit-doid/ncit_dict.jsonl",
     "doid": "experiments/dataset/OAEI/BioLLM/ncit-doid/doid_dict.jsonl",
-    "dbpedia": "experiments/dataset/OAEI/CommonKG/Nell-DBpedia/dbpedia_dict.jsonl",
     "nell": "experiments/dataset/OAEI/CommonKG/Nell-DBpedia/nell_dict.jsonl",
+    "dbpedia": "experiments/dataset/OAEI/CommonKG/Nell-DBpedia/dbpedia_dict.jsonl",
     "mouse": "experiments/dataset/OAEI/Anatomy/anatomy-dataset/mouse_dict.jsonl",
     "human": "experiments/dataset/OAEI/Anatomy/anatomy-dataset/human_dict.jsonl",
     "yago": "experiments/dataset/OAEI/CommonKG/YAGO-Wikidata/yago_dict.jsonl",
     "wikidata": "experiments/dataset/OAEI/CommonKG/YAGO-Wikidata/wikidata_dict.jsonl",
-    "mi": "experiments/dataset/OAEI/MSE/MI-EMMO/mi_dict.jsonl",
-    "emmo": "experiments/dataset/OAEI/MSE/MI-EMMO/emmo_dict.jsonl",
     "envo": "experiments/dataset/OAEI/Biodiv/envo_dict.jsonl",
     "sweet": "experiments/dataset/OAEI/Biodiv/sweet_dict.jsonl",
     "mi2": "experiments/dataset/OAEI/MSE/MI-MatOnto/mi_dict.jsonl",
     "matonto": "experiments/dataset/OAEI/MSE/MI-MatOnto/matonto_dict.jsonl",
-    "omim": "experiments/dataset/OAEI/BioLLM/omim-ordo/omim_dict.jsonl",
-    "ordo": "experiments/dataset/OAEI/BioLLM/omim-ordo/ordo_dict.jsonl"
 }
