@@ -1,40 +1,70 @@
 from collections import defaultdict, deque
 
-def offline_refine(equiv_classes, rank_attr):
-    # Build reverse mapping: class_id -> set(nodes)
-    classes = defaultdict(set)
-    for node, cid in equiv_classes.items():
-        classes[cid].add(node)
-
-    # Iteratively refine until stable
-    changed = True
-    while changed:
-        changed = False
-        new_classes = {}
-        # For each class, split by sorted multiset of neighbor class-ids
-        for cid, members in classes.items():
-            signature_map = defaultdict(set)
-            for u in members:
-                # signature: (rank, sorted(incoming_class_ids), sorted(outgoing_class_ids))
-                incoming = sorted({equiv_classes[p] for p in u.in_edges})
-                outgoing = sorted({equiv_classes[c] for c in u.out_edges})
-                sig = (rank_attr[u], tuple(incoming), tuple(outgoing))
-                signature_map[sig].add(u)
-            # If you split into >1 group:
-            if len(signature_map) > 1:
-                changed = True
-            # assign new class ids
-            for group in signature_map.values():
-                new_cid = min(hash(n) for n in group)  # or any deterministic ID
-                for n in group:
-                    new_classes[n] = new_cid
-        # re-index classes for next pass
-        classes = defaultdict(set)
-        for n, cid in new_classes.items():
-            classes[cid].add(n)
-        equiv_classes = new_classes
-
-    return equiv_classes
+def offline_refine(adj, rank_attr):
+    V = set(adj)
+    
+    rho = max(rank_attr.values())
+    
+    # build B_i and initial partition P = {B₀, …, B_ρ}
+    B = {i: {c for c, r in rank_attr.items() if r == i} for i in range(rho+1)}
+    P = [set(B[i]) for i in range(rho+1)]
+    
+    # build incoming edges map
+    incoming = defaultdict(set)
+    for u, children in adj.items():
+        for v in children:
+            incoming[v].add(u)
+    
+    # refinement passes
+    for i in range(rho+1):
+        Bi = B[i]
+        Di = [X for X in P if X and X.issubset(Bi)]
+        # collapse(P, X) — we defer actual graph collapse until the end,
+        # but we leave this here so future splits use the updated P
+        # (no-op since we only use P for splitting)
+        
+        downstream = set().union(*(B[j] for j in range(i+1, rho+1)))
+        new_P = []
+        for C in P:
+            # If C lives strictly in downstream levels, consider splitting
+            if C and C.issubset(downstream):
+                # for each pivot c in B_i, attempt to split C by adjacency
+                split_occurred = False
+                for c in Bi:
+                    # C1 = members of C that have an edge to or from c
+                    C1 = {n for n in C if (n in adj.get(c, [])) or (c in incoming.get(n, []))}
+                    C2 = C - C1
+                    if C1 and C2:
+                        # split
+                        new_P.append(C1)
+                        new_P.append(C2)
+                        split_occurred = True
+                        break
+                if not split_occurred:
+                    new_P.append(C)
+            else:
+                # leave blocks that are not downstream untouched
+                new_P.append(C)
+        P = new_P
+    
+    # construct G_o by collapsing each block into its representative
+    # choose the minimal node id as rep for determinism
+    rep_map = {}
+    for block in P:
+        rep = min(block)
+        for n in block:
+            rep_map[n] = rep
+    
+    G_o = defaultdict(set)
+    for u, children in adj.items():
+        u_rep = rep_map[u]
+        for v in children:
+            v_rep = rep_map[v]
+            if u_rep != v_rep:
+                G_o[u_rep].add(v_rep)
+    
+    # to keep the same type, convert sets back to lists
+    return {u: list(vs) for u, vs in G_o.items()}
 
 
 def online_refine(equiv_classes, src, tgt, pred):
