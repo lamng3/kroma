@@ -93,6 +93,16 @@ dictionary = {k: load_cache(dict_paths[k]) for k in dict_paths}
 n_shot_demo = 5
 
 # ----------------------------------------------------------------------------
+# PROFILING SETUP
+# ----------------------------------------------------------------------------
+online_call_count = 0
+online_total_time = 0.0
+offline_call_count = 0
+offline_total_time = 0.0
+
+start_all = time.time()
+
+# ----------------------------------------------------------------------------
 # PREDICTION FILES
 # ----------------------------------------------------------------------------
 predicted_keys, predicted_pairs, prediction_file = get_predicted_pairs_and_file(
@@ -294,8 +304,12 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
 
     y_true.append(int(label)); y_pred.append(int(pred))
 
-    # online refinement step
+    # --- PROFILE online_refine ---
+    t0 = time.time()
     equiv_classes, expert_q = online_refine(equiv_classes, src_keycode, tgt_keycode, pred)
+    dt_online = time.time() - t0
+    online_call_count += 1
+    online_total_time += dt_online
 
     if not accept:
         # print to console
@@ -305,10 +319,46 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
             for (u, v) in expert_q or []:
                 rf.write(f"{src_key},{tgt_key},{u}->{v}\n")
 
-# offline refinement pass over the entire graph
+# ----------------------------------------------------------------------------
+# PROFILE offline_refine
+# ----------------------------------------------------------------------------
+t1 = time.time()
 refined_equiv = offline_refine(equiv_classes, rank_attr)
+dt_offline = time.time() - t1
+offline_call_count += 1
+offline_total_time += dt_offline
 
-running_time = time.time() - start_time
+# ----------------------------------------------------------------------------
+# FINAL METRICS & PROFILING REPORT
+# ----------------------------------------------------------------------------
+running_time = time.time() - start_all
 prec, rec, f1 = calculate_metrics(y_true, y_pred)
-output_metrics.update(running_time=running_time, metrics=dict(precision=prec, recall=rec, f1=f1))
-print("\nFinal metrics:\n", json.dumps(output_metrics, indent=2))
+
+print("\n=== Final Accuracy Metrics ===")
+print(f"Precision: {prec:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
+print(f"Total runtime: {running_time:.2f}s")
+
+print("\n=== Refinement Profiling ===")
+print(f"Online refinement calls:  {online_call_count}")
+print(f"Total time in online_refine:  {online_total_time:.2f}s "
+      f"({online_total_time/running_time*100:.1f}% of total)")
+print(f"Offline refinement calls: {offline_call_count}")
+print(f"Total time in offline_refine: {offline_total_time:.2f}s "
+      f"({offline_total_time/running_time*100:.1f}% of total)")
+print(f"Sum of refinement time:    {(online_total_time+offline_total_time):.2f}s "
+      f"({(online_total_time+offline_total_time)/running_time*100:.1f}% of total)")
+
+# Optionally, dump a JSON report:
+report = {
+    "accuracy": {"precision": prec, "recall": rec, "f1": f1},
+    "timing": {
+        "total": running_time,
+        "online_calls": online_call_count,
+        "online_time": online_total_time,
+        "offline_calls": offline_call_count,
+        "offline_time": offline_total_time,
+    }
+}
+with open("profiling_report.json", "w") as f:
+    json.dump(report, f, indent=2)
+print("Profiling report written to profiling_report.json")
