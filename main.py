@@ -23,10 +23,11 @@ from tasks.loader import CsvAlignmentLoader
 from tasks.builder import build_ontology_matching_task
 from tasks.prompts.builders import list_to_str
 
-from retrieval.vector_store import VectorStore
+from algorithms.utils import compute_node_ranks, merge_graphs
+from algorithms.node2vec import compute_combined_embeddings
+from algorithms.refinement import online_refine, offline_refine
 
-from algorithms.bisimulation import bisimulation, compute_node_ranks
-from algorithms.incremental_refinement import incremental_refinement, merge_graphs
+from retrieval.vector_store import VectorStore
 
 from metrics.scoring import calculate_metrics
 
@@ -129,23 +130,73 @@ initialize_graph(OS, OT)
 # ----------------------------------------------------------------------------
 compressed_graph = merge_graphs(OS, OT)
 rank_attr = compute_node_ranks(compressed_graph)
+equiv_classes = {n: n for n in compressed_graph}
 
 # ----------------------------------------------------------------------------
 # SETUP EMBEDDER + VECTOR STORES
 # ----------------------------------------------------------------------------
+# Node2Vec parameters
+n2v_kwargs = {
+    'dimensions': 128,
+    'walk_length': 30,
+    'num_walks': 200,
+    'p': 1,
+    'q': 1,
+    'workers': 4,
+    'seed': 42
+}
+
+# embedding generation build with text
 embedder = create_embedding_model("huggingface", "allenai/scibert_scivocab_uncased")
+
+# determine which source/target keys are in the eval set
+eval_src = {src_key[0] for src_key, _, _ in task_aligns}
+eval_tgt = {tgt_key[0] for _, tgt_key, _ in task_aligns}
+
+# prepare IDs and text embeddings
+all_src_ids      = list(OS.keys())
+all_src_labels   = [f"{OS_meta[k]['labels'][0]}" for k in all_src_ids]
+all_src_text_emb = embedder.encode(all_src_labels)
+
+all_tgt_ids      = list(OT.keys())
+all_tgt_labels   = [f"{OT_meta[k]['labels'][0]}" for k in all_tgt_ids]
+all_tgt_text_emb = embedder.encode(all_tgt_labels)
+
+# compute combined (text + node2vec) embeddings
+all_src_combined = compute_combined_embeddings(
+    adj_dict       = compressed_graph,
+    node_keys      = all_src_ids,
+    text_embs      = all_src_text_emb,
+    n2v_kwargs     = n2v_kwargs,
+    combine_method = 'concat',
+    alpha          = 0.5
+)
+all_tgt_combined = compute_combined_embeddings(
+    adj_dict       = compressed_graph,
+    node_keys      = all_tgt_ids,
+    text_embs      = all_tgt_text_emb,
+    n2v_kwargs     = n2v_kwargs,
+    combine_method = 'concat',
+    alpha          = 0.5
+)
+
+# split sampled pool
+pool_src_ids    = [k for k in all_src_ids if k not in eval_src]
+pool_src_embs   = np.vstack([
+    all_src_combined[all_src_ids.index(k)] for k in pool_src_ids
+])
+
+pool_tgt_ids    = [k for k in all_tgt_ids if k not in eval_tgt]
+pool_tgt_embs   = np.vstack([
+    all_tgt_combined[all_tgt_ids.index(k)] for k in pool_tgt_ids
+])
+
+# populate vector stores with the combined embeddings
 src_store = VectorStore()
+src_store.add(ext_ids=pool_src_ids, embeddings=pool_src_embs)
+
 tgt_store = VectorStore()
-
-src_ids = list(OS.keys())
-src_texts = [f"{lbl}" for lbl, uri in src_ids]
-src_embs = embedder.encode(src_texts)
-src_store.add(ext_ids=src_ids, embeddings=src_embs)
-
-tgt_ids = list(OT.keys())
-tgt_texts = [f"{lbl}" for lbl, uri in tgt_ids]
-tgt_embs = embedder.encode(tgt_texts)
-tgt_store.add(ext_ids=tgt_ids, embeddings=tgt_embs)
+tgt_store.add(ext_ids=pool_tgt_ids, embeddings=pool_tgt_embs)
 
 # ----------------------------------------------------------------------------
 # EVALUATION LOOP
@@ -196,40 +247,38 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
                 f"{'are related.' if rec['true_relation'] == 0 else 'do not appear to be related.'}\n\n"
             )
 
+    meta_block = (
+        f"The source concept “{src_label}” has parents {', '.join(src_meta['parents'])}, children {', '.join(src_meta['children'])}, "
+        f"synonyms {', '.join(src_meta['synonyms'])}, and labels {', '.join(src_meta['labels'])}.\n"
+        f"The target concept “{tgt_label}” has parents {', '.join(tgt_meta['parents'])}, children {', '.join(tgt_meta['children'])}, "
+        f"synonyms {', '.join(tgt_meta['synonyms'])}, and labels {', '.join(tgt_meta['labels'])}.\n\n"
+    )
 
-    if args.bisim and (src_keycode, tgt_keycode) in bisimulation(compressed_graph):
-        pred, conf, accept = 1, 10, True
-        llm_metrics = dict(input_token=0, output_token=0, api_call_cnt=0)
-    else:
-        meta_block = (
-            f"The source concept “{src_label}” has parents {', '.join(src_meta['parents'])}, children {', '.join(src_meta['children'])}, "
-            f"synonyms {', '.join(src_meta['synonyms'])}, and labels {', '.join(src_meta['labels'])}.\n"
-            f"The target concept “{tgt_label}” has parents {', '.join(tgt_meta['parents'])}, children {', '.join(tgt_meta['children'])}, "
-            f"synonyms {', '.join(tgt_meta['synonyms'])}, and labels {', '.join(tgt_meta['labels'])}.\n\n"
-        )
-        src_hits = src_store.query(src_emb, top_k=3)
-        tgt_hits = tgt_store.query(tgt_emb, top_k=3)
-        src_ctx = [f"{list_to_str(OS_meta[lbl]['labels'])}" for (lbl, uri), _ in src_hits if lbl in OS_meta]
-        tgt_ctx = [f"{list_to_str(OT_meta[lbl]['labels'])}" for (lbl, uri), _ in tgt_hits if lbl in OT_meta]
-        rag_block = (
-            f"For the source concept “{src_label}”, the most similar context labels are: {', '.join(src_ctx)}. "
-            f"For the target concept “{tgt_label}”, the most similar context labels are: {', '.join(tgt_ctx)}.\n\n"
-        )
-        context_block = demo_block + meta_block + rag_block
-        agents = create_agents(1, agent_type, agent_name)
-        pred, llm_metrics, conf, accept = agent_inference(
-            debate=False if args.debate == "false" else True,
-            agent_configs=agent_configs,
-            backend=agent_type, model_name=agent_name,
-            source_term=(src_keycode, src_node), target_term=(tgt_keycode, tgt_node),
-            pcmaps={'source': OS_map, 'target': OT_map}, dictionary=dictionary,
-            options=query_opts, embed_model=embedder,
-            store=(src_store, tgt_store), n_rounds=n_rounds, dropout=dropout,
-            reasoning=args.reasoning, active_learning=args.active_learning,
-            f1_score=f1, bisim=args.bisim, context=context_block
-        )
-        for k in output_metrics['api_metrics']:
-            output_metrics['api_metrics'][k] += llm_metrics.get(k, 0)
+    # neighbor sampling
+    src_hits = src_store.query(src_emb, top_k=3)
+    tgt_hits = tgt_store.query(tgt_emb, top_k=3)
+
+    src_ctx = [f"{list_to_str(OS_meta[lbl]['labels'])}" for (lbl, uri), _ in src_hits if lbl in OS_meta]
+    tgt_ctx = [f"{list_to_str(OT_meta[lbl]['labels'])}" for (lbl, uri), _ in tgt_hits if lbl in OT_meta]
+    rag_block = (
+        f"For the source concept “{src_label}”, the most similar context labels are: {', '.join(src_ctx)}. "
+        f"For the target concept “{tgt_label}”, the most similar context labels are: {', '.join(tgt_ctx)}.\n\n"
+    )
+    context_block = demo_block + meta_block + rag_block
+    agents = create_agents(1, agent_type, agent_name)
+    pred, llm_metrics, conf, accept = agent_inference(
+        debate=False if args.debate == "false" else True,
+        agent_configs=agent_configs,
+        backend=agent_type, model_name=agent_name,
+        source_term=(src_keycode, src_node), target_term=(tgt_keycode, tgt_node),
+        pcmaps={'source': OS_map, 'target': OT_map}, dictionary=dictionary,
+        options=query_opts, embed_model=embedder,
+        store=(src_store, tgt_store), n_rounds=n_rounds, dropout=dropout,
+        reasoning=args.reasoning, active_learning=args.active_learning,
+        f1_score=f1, bisim=args.bisim, context=context_block
+    )
+    for k in output_metrics['api_metrics']:
+        output_metrics['api_metrics'][k] += llm_metrics.get(k, 0)
 
     predicted_keys.add((src_keycode, tgt_keycode))
     row = dict(
@@ -245,18 +294,19 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
 
     y_true.append(int(label)); y_pred.append(int(pred))
 
+    # online refinement step
+    equiv_classes, expert_q = online_refine(equiv_classes, src_keycode, tgt_keycode, pred)
+
     if not accept:
-        compressed_graph, expert_q = incremental_refinement(
-            G_r=compressed_graph,
-            delta_G=[(src_keycode, tgt_keycode)], 
-            rank_attr=rank_attr
-        )
         # print to console
         for eq in (expert_q or []): print("  → expert review:", eq)
         # append to CSV file
         with review_file.open("a+") as rf:
             for (u, v) in expert_q or []:
                 rf.write(f"{src_key},{tgt_key},{u}->{v}\n")
+
+# offline refinement pass over the entire graph
+refined_equiv = offline_refine(equiv_classes, rank_attr)
 
 running_time = time.time() - start_time
 prec, rec, f1 = calculate_metrics(y_true, y_pred)

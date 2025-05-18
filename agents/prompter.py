@@ -19,8 +19,7 @@ from tasks.prompts.builders import (
 from retrieval.vector_store import VectorStore
 
 # bring in bisimulation and ranking
-from algorithms.bisimulation import bisimulation, compute_node_ranks
-from algorithms.incremental_refinement import incremental_refinement, merge_graphs
+from algorithms.utils import merge_graphs, compute_node_ranks
 
 random.seed(2025)
 
@@ -62,12 +61,6 @@ def inference(
     """
     global compressed_graph, rank_attr
 
-    # bisimulation quick accept
-    if bisim:
-        aligned = bisimulation(compressed_graph)
-        if (source_term, target_term) in aligned:
-            return 1, {'input_token': 0, 'output_token': 0, 'api_call_cnt': 0}, 10, True
-
     # creating agents from config or duplicate single model
     if debate:
         agents = create_agents_from_config(agent_configs)
@@ -77,6 +70,7 @@ def inference(
     metrics = {'input_token': 0, 'output_token': 0, 'api_calls': 0}
 
     # expand terms with metadata
+    # query parameterization
     src = expand_term(source_term, pcmaps['source'], dictionary, options)
     tgt = expand_term(target_term, pcmaps['target'], dictionary, options)
 
@@ -125,20 +119,10 @@ def inference(
     if active_learning:
         accept = active_learning_score(conf, f1_score) > 0
 
-    # incremental refinement
-    if not accept:
-        delta = [(source_term[0], target_term[0])]
-        compressed_graph, newQ = incremental_refinement(
-            G_r=compressed_graph,
-            delta_G=delta,
-            rank_attr=rank_attr
-        )
-        if newQ:
-            print("Expert queries needed:", newQ)
-
     return pred, metrics, conf, accept
 
 
+# query processing
 def expand_term(
     term: Tuple[str, str],
     pcmap: Dict[str, set],
