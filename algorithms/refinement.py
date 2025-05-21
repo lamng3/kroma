@@ -1,88 +1,117 @@
-from collections import defaultdict, deque
+from typing import Any, Dict, Set, List, Tuple
+from collections import defaultdict
 
-def offline_refine(adj, rank_attr):
+def offline_refine(adj: Dict[Any, List[Any]], rank_attr: Dict[Any, int]) -> Dict[Any, List[Any]]:
     V = set(adj)
-    
-    rho = max(rank_attr.values())
-    
-    # build B_i and initial partition P = {B₀, …, B_ρ}
-    B = {i: {c for c, r in rank_attr.items() if r == i} for i in range(rho+1)}
-    P = [set(B[i]) for i in range(rho+1)]
-    
+    rho = max(rank_attr.values(), default=0)
+
+    # build B_i and initial partition P = {B_0, …, B_rho}
+    B: Dict[int, Set[Any]] = {i: {c for c, r in rank_attr.items() if r == i} for i in range(rho + 1)}
+    P: List[Set[Any]] = [set(B[i]) for i in range(rho + 1)]
+
     # build incoming edges map
-    incoming = defaultdict(set)
+    incoming: Dict[Any, Set[Any]] = defaultdict(set)
     for u, children in adj.items():
         for v in children:
             incoming[v].add(u)
-    
+
     # refinement passes
-    for i in range(rho+1):
+    for i in range(rho + 1):
         Bi = B[i]
-        Di = [X for X in P if X and X.issubset(Bi)]
-        # collapse(P, X) — we defer actual graph collapse until the end,
-        # but we leave this here so future splits use the updated P
-        # (no-op since we only use P for splitting)
-        
-        downstream = set().union(*(B[j] for j in range(i+1, rho+1)))
-        new_P = []
+        downstream = set().union(*(B[j] for j in range(i + 1, rho + 1)))
+        new_P: List[Set[Any]] = []
+
         for C in P:
-            # If C lives strictly in downstream levels, consider splitting
             if C and C.issubset(downstream):
-                # for each pivot c in B_i, attempt to split C by adjacency
-                split_occurred = False
+                split_done = False
                 for c in Bi:
-                    # C1 = members of C that have an edge to or from c
                     C1 = {n for n in C if (n in adj.get(c, [])) or (c in incoming.get(n, []))}
                     C2 = C - C1
                     if C1 and C2:
-                        # split
-                        new_P.append(C1)
-                        new_P.append(C2)
-                        split_occurred = True
+                        new_P.extend([C1, C2])
+                        split_done = True
                         break
-                if not split_occurred:
+                if not split_done:
                     new_P.append(C)
             else:
-                # leave blocks that are not downstream untouched
                 new_P.append(C)
         P = new_P
-    
-    # construct G_o by collapsing each block into its representative
-    # choose the minimal node id as rep for determinism
-    rep_map = {}
+
+    # collapse each block
+    rep_map: Dict[Any, Any] = {}
     for block in P:
         rep = min(block)
         for n in block:
             rep_map[n] = rep
-    
-    G_o = defaultdict(set)
+
+    G_o: Dict[Any, Set[Any]] = defaultdict(set)
     for u, children in adj.items():
         u_rep = rep_map[u]
         for v in children:
             v_rep = rep_map[v]
             if u_rep != v_rep:
                 G_o[u_rep].add(v_rep)
-    
-    # to keep the same type, convert sets back to lists
+
     return {u: list(vs) for u, vs in G_o.items()}
 
 
-def online_refine(equiv_classes, src, tgt, pred):
+def online_refine(full_graph, rank_attr, equiv_classes, delta_edges, pred):
+    # 1) incorporate edges
+    for u, v in delta_edges:
+        full_graph[u].add(v)
+
+    # 2) sort edges by block‐rank
+    block_rank = lambda n: rank_attr[equiv_classes[n]]
+    delta_edges.sort(key=lambda e: block_rank(e[0]))
+
+    # 3) build block → members map
+    blocks = defaultdict(set)
+    for node, bid in equiv_classes.items():
+        blocks[bid].add(node)
+
     expert_q = []
-    src_cid = equiv_classes.get(src, src)
-    tgt_cid = equiv_classes.get(tgt, tgt)
+    for u, v in delta_edges:
+        bu, bv = equiv_classes[u], equiv_classes[v]
+        ru, rv = rank_attr[bu], rank_attr[bv]
 
-    if pred == 1:
-        # merge classes
-        new_cid = min(src_cid, tgt_cid)
-        for n, cid in list(equiv_classes.items()):
-            if cid == src_cid or cid == tgt_cid:
-                equiv_classes[n] = new_cid
+        if pred == 1 and bu != bv:
+            if ru > rv:
+                # merge entire bv into bu
+                for n in blocks[bv]:
+                    equiv_classes[n] = bu
+                blocks[bu] |= blocks[bv]
+                del blocks[bv]
 
-    else:
-        # split if they were in the same class: flag for expert review
-        if src_cid == tgt_cid:
-            equiv_classes[tgt] = tgt
-            expert_q.append((src, tgt))
+            elif ru == rv:
+                # equal ranks: partial merges
+                parents = {w for w, cs in full_graph.items() if cs & blocks[bv]}
+                children = {ch for m in blocks[bu] for ch in full_graph[m]}
+                for w in parents:
+                    equiv_classes[w] = bu
+                    blocks[bu].add(w)
+                for ch in children:
+                    equiv_classes[ch] = bv
+                    blocks[bv].add(ch)
+
+            else:
+                # symmetric of the first case
+                for n in blocks[bu]:
+                    equiv_classes[n] = bv
+                blocks[bv] |= blocks[bu]
+                del blocks[bu]
+
+        elif pred == 0 and bu == bv:
+            # a “split” decision: carve out v’s bisimulation frontier
+            new_block = {n for n in blocks[bu]
+                         if not (full_graph[n] == full_graph[v] and
+                                 {p for p in full_graph if n in full_graph[p]}
+                                 == {p for p in full_graph if v in full_graph[p]})}
+            # move those into a new class
+            for n in new_block:
+                equiv_classes[n] = n
+            blocks[bu] -= new_block
+            for n in new_block:
+                blocks[n] = {n}
+            expert_q.append((u, v))
 
     return equiv_classes, expert_q

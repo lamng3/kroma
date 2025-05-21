@@ -300,7 +300,8 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
         api_metrics=llm_metrics, accepted=accept
     )
     prediction_file.write(json.dumps(row) + "\n")
-    prediction_file.flush(); os.fsync(prediction_file.fileno())
+    prediction_file.flush()
+    os.fsync(prediction_file.fileno())
 
     y_true.append(int(label)); y_pred.append(int(pred))
 
