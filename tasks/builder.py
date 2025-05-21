@@ -12,9 +12,8 @@ def build_ontology_expansion_task(
     keep_ratio: float = 0.5
 ) -> Tuple[Dict[Any, set], Dict[Any, set], Dict[Any, List[Any]]]:
     """
-    Splits each node's neighbor set into:
-      - G_keep: a subset to retain in the prompt
-      - G_expand: the remainder to use for expansion context
+        G_keep: a subset to retain in the prompt
+        G_expand: the remainder to use for expansion context
     """
     G_keep, G_expand = defaultdict(set), defaultdict(set)
     for node, neighbors in G.items():
@@ -29,11 +28,6 @@ def build_ontology_expansion_task(
 def build_parent_child_map(
     G: Dict[Tuple[str, str], Any]
 ) -> Tuple[Dict[str, set], Dict[str, set]]:
-    """
-    Constructs:
-      - parent_map[label] = set(child_labels)
-      - child_map[label]  = set(parent_labels)
-    """
     parent_map, child_map = defaultdict(set), defaultdict(set)
     for (label, _), children in G.items():
         child_map[label] = {c[0] for c in children}
@@ -58,14 +52,6 @@ def build_ontology_matching_task(
     Dict[str, set],
     Dict[str, set]
 ]:
-    """
-    Samples up to sample_sz positives and negatives, enriches each node's metadata,
-    then returns:
-      G1, G2, sampled_alignments,
-      OS_meta, OT_meta,
-      {'parent': parent_map1, 'child': child_map1},
-      {'parent': parent_map2, 'child': child_map2}
-    """
     # sample positives/negatives
     positives = [m for m in alignments if m[2] == "1"]
     negatives = [m for m in alignments if m[2] != "1"]
