@@ -68,7 +68,7 @@ def online_refine(
     delta_edges: List[Tuple[Any, Any]],
     pred: int
 ) -> Tuple[Dict[Any, Any], List[Tuple[Any, Any]]]:
-    # 0) Ensure all nodes are present
+    # ensure all nodes are present
     for u, v in delta_edges:
         full_graph.setdefault(u, set())
         full_graph.setdefault(v, set())
@@ -82,15 +82,15 @@ def online_refine(
         rank_attr.setdefault(bu, 0)
         rank_attr.setdefault(bv, 0)
 
-    # 1) Incorporate new edges
+    # incorporate new edges
     for u, v in delta_edges:
         full_graph[u].add(v)
 
-    # 2) Sort edges by block rank
+    # sort edges by block rank
     block_rank = lambda n: rank_attr[equiv_classes[n]]
     delta_edges.sort(key=lambda e: block_rank(e[0]))
 
-    # 3) Build block -> members map
+    # build block -> members map
     blocks: Dict[Any, Set[Any]] = defaultdict(set)
     for node, bid in equiv_classes.items():
         blocks[bid].add(node)
