@@ -139,8 +139,18 @@ initialize_graph(OS, OT)
 # COMPUTE NODE RANKS
 # ----------------------------------------------------------------------------
 compressed_graph = merge_graphs(OS, OT)
-rank_attr = compute_node_ranks(compressed_graph)
-equiv_classes = {n: n for n in compressed_graph}
+# ensure every aligned src/tgt is in the graph
+for src, tgt, _ in task_aligns:
+    compressed_graph.setdefault(src, set())
+    compressed_graph.setdefault(tgt, set())
+
+# now recompute your nodes, ranks, and equivalence‐classes:
+all_nodes     = set(compressed_graph) | {c for vs in compressed_graph.values() for c in vs}
+rank_attr_map = compute_node_ranks(compressed_graph)
+equiv_classes = {n: n for n in all_nodes}
+
+# warm up offline
+_ = offline_refine(adj=compressed_graph, rank_attr=rank_attr_map)
 
 # ----------------------------------------------------------------------------
 # SETUP EMBEDDER + VECTOR STORES
@@ -225,10 +235,28 @@ size_map = {'xsmall':0.2, 'small':0.4, 'medium':0.6, 'large':0.8, 'full':1.0}
 limit = int(len(task_aligns) * size_map[args.size])
 if limit < len(task_aligns): task_aligns = random.sample(task_aligns, limit)
 
+start = time.time()
+online_time = 0.0
+offline_time = 0.0
+
 for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
     prec, rec, f1 = calculate_metrics(y_true, y_pred)
     output_metrics['metrics'] = dict(precision=prec, recall=rec, f1=f1)
     print(f"\nObservation {idx}/{len(task_aligns)} — F1 so far: {f1:.3f}")
+
+    if idx % 5 == 0:
+        # take a snapshot of the current graph
+        snapshot = {u: set(vs) for u, vs in compressed_graph.items()}
+        # recompute ranks for that snapshot
+        snap_ranks = compute_node_ranks(snapshot)
+
+        # time the full offline pass
+        t0_snap = time.time()
+        _ = offline_refine(snapshot, snap_ranks)
+        rank_attr_map = compute_node_ranks(_)
+        t1_snap = time.time()
+        offline_time += t1_snap - t0_snap
+        print(f"[Benchmark] offline_refine at idx={idx} took {t1_snap - t0_snap:.3f}s")
 
     src_keycode = src_key[0]
     tgt_keycode = tgt_key[0]
@@ -305,61 +333,49 @@ for idx, (src_key, tgt_key, label) in enumerate(task_aligns, 1):
 
     y_true.append(int(label)); y_pred.append(int(pred))
 
-    # --- PROFILE online_refine ---
-    t0 = time.time()
-    equiv_classes, expert_q = online_refine(equiv_classes, src_keycode, tgt_keycode, pred)
-    dt_online = time.time() - t0
-    online_call_count += 1
-    online_total_time += dt_online
+    if accept:
+        # --- PROFILE online_refine ---
+        t0 = time.time()
+        delta_edges = [(src, tgt)]
+        equiv_classes, expert_qs = online_refine(
+            compressed_graph,
+            rank_attr_map,
+            equiv_classes,
+            delta_edges,
+            pred
+        )
+        t1 = time.time()
+        online_time += (t1 - t0)
 
-    if not accept:
         # print to console
-        for eq in (expert_q or []): print("  → expert review:", eq)
+        for eq in (expert_qs or []): print("  → expert review:", eq)
         # append to CSV file
         with review_file.open("a+") as rf:
-            for (u, v) in expert_q or []:
+            for (u, v) in expert_qs or []:
                 rf.write(f"{src_key},{tgt_key},{u}->{v}\n")
 
 # ----------------------------------------------------------------------------
 # PROFILE offline_refine
 # ----------------------------------------------------------------------------
-t1 = time.time()
-refined_equiv = offline_refine(equiv_classes, rank_attr)
-dt_offline = time.time() - t1
-offline_call_count += 1
-offline_total_time += dt_offline
+t0_off = time.time()
+refined_graph = offline_refine(adj=compressed_graph, rank_attr=rank_attr_map)
+t1_off = time.time()
+offline_time += t1_off - t0_off
 
 # ----------------------------------------------------------------------------
 # FINAL METRICS & PROFILING REPORT
 # ----------------------------------------------------------------------------
-running_time = time.time() - start_all
-prec, rec, f1 = calculate_metrics(y_true, y_pred)
+end = time.time()
+total_time = end - start
+prec, rec, f1 = calculate_metrics(y_true=y_true, y_pred=y_pred)
+output_metrics.update({
+    'running_time': total_time,  
+    'metrics': {'precision': prec, 'recall': rec, 'f1': f1},
+    'timings': { 'offline_refinement': offline_time, 'online_refinement': online_time, 'total': round(total_time, 3) }
+})
+print("\nFinal metrics:", output_metrics)
 
-print("\n=== Final Accuracy Metrics ===")
-print(f"Precision: {prec:.4f}, Recall: {rec:.4f}, F1: {f1:.4f}")
-print(f"Total runtime: {running_time:.2f}s")
-
-print("\n=== Refinement Profiling ===")
-print(f"Online refinement calls:  {online_call_count}")
-print(f"Total time in online_refine:  {online_total_time:.2f}s "
-      f"({online_total_time/running_time*100:.1f}% of total)")
-print(f"Offline refinement calls: {offline_call_count}")
-print(f"Total time in offline_refine: {offline_total_time:.2f}s "
-      f"({offline_total_time/running_time*100:.1f}% of total)")
-print(f"Sum of refinement time:    {(online_total_time+offline_total_time):.2f}s "
-      f"({(online_total_time+offline_total_time)/running_time*100:.1f}% of total)")
-
-# Optionally, dump a JSON report:
-report = {
-    "accuracy": {"precision": prec, "recall": rec, "f1": f1},
-    "timing": {
-        "total": running_time,
-        "online_calls": online_call_count,
-        "online_time": online_total_time,
-        "offline_calls": offline_call_count,
-        "offline_time": offline_total_time,
-    }
-}
-with open("profiling_report.json", "w") as f:
-    json.dump(report, f, indent=2)
-print("Profiling report written to profiling_report.json")
+metrics_path = Path(prediction_file.name).with_suffix('.metrics.json')
+with metrics_path.open('w', encoding='utf-8') as mf:
+    json.dump(output_metrics, mf, indent=2)
+print(f"Saved metrics to {metrics_path}")

@@ -40,9 +40,15 @@ def offline_refine(adj: Dict[Any, List[Any]], rank_attr: Dict[Any, int]) -> Dict
     # collapse each block
     rep_map: Dict[Any, Any] = {}
     for block in P:
-        rep = min(block)
+        rep = min(block, key=lambda n: str(n))
         for n in block:
             rep_map[n] = rep
+    
+    for u in adj:
+        rep_map.setdefault(u, u)
+    for vs in adj.values():
+        for v in vs:
+            rep_map.setdefault(v, v)
 
     G_o: Dict[Any, Set[Any]] = defaultdict(set)
     for u, children in adj.items():
@@ -55,31 +61,51 @@ def offline_refine(adj: Dict[Any, List[Any]], rank_attr: Dict[Any, int]) -> Dict
     return {u: list(vs) for u, vs in G_o.items()}
 
 
-def online_refine(full_graph, rank_attr, equiv_classes, delta_edges, pred):
-    # 1) incorporate edges
+def online_refine(
+    full_graph: Dict[Any, Set[Any]],
+    rank_attr: Dict[Any, int],
+    equiv_classes: Dict[Any, Any],
+    delta_edges: List[Tuple[Any, Any]],
+    pred: int
+) -> Tuple[Dict[Any, Any], List[Tuple[Any, Any]]]:
+    # 0) Ensure all nodes are present
+    for u, v in delta_edges:
+        full_graph.setdefault(u, set())
+        full_graph.setdefault(v, set())
+        rank_attr.setdefault(u, 0)
+        rank_attr.setdefault(v, 0)
+        equiv_classes.setdefault(u, u)
+        equiv_classes.setdefault(v, v)
+        # also guard block IDs
+        bu = equiv_classes[u]
+        bv = equiv_classes[v]
+        rank_attr.setdefault(bu, 0)
+        rank_attr.setdefault(bv, 0)
+
+    # 1) Incorporate new edges
     for u, v in delta_edges:
         full_graph[u].add(v)
 
-    # 2) sort edges by block‐rank
+    # 2) Sort edges by block rank
     block_rank = lambda n: rank_attr[equiv_classes[n]]
     delta_edges.sort(key=lambda e: block_rank(e[0]))
 
-    # 3) build block → members map
-    blocks = defaultdict(set)
+    # 3) Build block -> members map
+    blocks: Dict[Any, Set[Any]] = defaultdict(set)
     for node, bid in equiv_classes.items():
         blocks[bid].add(node)
 
-    expert_q = []
+    expert_q: List[Tuple[Any, Any]] = []
     for u, v in delta_edges:
         bu, bv = equiv_classes[u], equiv_classes[v]
         ru, rv = rank_attr[bu], rank_attr[bv]
 
         if pred == 1 and bu != bv:
             if ru > rv:
-                # merge entire bv into bu
+                # merge block bv into bu
                 for n in blocks[bv]:
                     equiv_classes[n] = bu
-                blocks[bu] |= blocks[bv]
+                blocks[bu].update(blocks[bv])
                 del blocks[bv]
 
             elif ru == rv:
@@ -94,19 +120,23 @@ def online_refine(full_graph, rank_attr, equiv_classes, delta_edges, pred):
                     blocks[bv].add(ch)
 
             else:
-                # symmetric of the first case
+                # symmetric case: merge bu into bv
                 for n in blocks[bu]:
                     equiv_classes[n] = bv
-                blocks[bv] |= blocks[bu]
+                blocks[bv].update(blocks[bu])
                 del blocks[bu]
 
         elif pred == 0 and bu == bv:
-            # a “split” decision: carve out v’s bisimulation frontier
-            new_block = {n for n in blocks[bu]
-                         if not (full_graph[n] == full_graph[v] and
-                                 {p for p in full_graph if n in full_graph[p]}
-                                 == {p for p in full_graph if v in full_graph[p]})}
-            # move those into a new class
+            # split decision: carve out v's bisimulation frontier
+            new_block = {
+                n for n in blocks[bu]
+                if not (
+                    full_graph[n] == full_graph[v] and
+                    {p for p in full_graph if n in full_graph[p]} ==
+                    {p for p in full_graph if v in full_graph[p]}
+                )
+            }
+            # move those into their own blocks
             for n in new_block:
                 equiv_classes[n] = n
             blocks[bu] -= new_block
