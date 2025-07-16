@@ -30,9 +30,9 @@ The OAEI datasets will be stored at `experiments/datasets/OAEI/<track>/<dataset>
 
 Should you need to refer to this work or find our codebase useful, please consider citing our work as:
 ```
-@inproceedings{2025_knowledge_retrieval_ontology_matching_llm,
+@inproceedings{nguyen_2025_kroma,
     title={KROMA: Knowledge Retrieval Ontology Matching using Large Language Model},
-    author={Anonymous},
+    author={Lam Nguyen and Erika Barcelos and Roger French and Yinghui Wu},
     year={2025},
 }
 ```
