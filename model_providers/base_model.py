@@ -5,7 +5,7 @@ from config.arguments import (
     EmbeddingArguments,
     APIStats,
 )
-from models.providers import (
+from model_providers.providers import (
     ChatProvider, 
     EmbeddingProvider,
 )

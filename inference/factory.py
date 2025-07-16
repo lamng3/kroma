@@ -3,9 +3,9 @@ from utils.env import get_env
 from config.constants import METADATA, DEFAULT_CHAT_BACKEND, DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL
 from config.arguments import ModelArguments, ModelMetadata, EmbeddingArguments
 
-from models.base_model import BaseModel, BaseEmbeddingModel
-from models.chat_providers import OpenAIProvider, TogetherProvider
-from models.embedding_providers import HFEmbeddingProvider
+from model_providers.base_model import BaseModel, BaseEmbeddingModel
+from model_providers.chat_providers import OpenAIProvider, TogetherProvider
+from model_providers.embedding_providers import HFEmbeddingProvider, STEmbeddingProvider
 
 # registry of available chat‐completion backends
 CHAT_BACKENDS: Dict[str, Type] = {
@@ -16,6 +16,7 @@ CHAT_BACKENDS: Dict[str, Type] = {
 # registry of available embedding backends
 EMBED_BACKENDS: Dict[str, Type] = {
     "huggingface": HFEmbeddingProvider,
+    "sentence-transformers": STEmbeddingProvider,
 }
 
 
@@ -56,7 +57,6 @@ def create_embedding_model(
     ProviderCls = EMBED_BACKENDS.get(backend)
     if ProviderCls is None:
         raise ValueError(f"unsupported embedding backend: {backend}")
-
     args = EmbeddingArguments(model_name=model_name)
     provider = ProviderCls(model_name=model_name)
     return BaseEmbeddingModel(provider, args)

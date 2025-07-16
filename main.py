@@ -168,6 +168,7 @@ n2v_kwargs = {
 
 # embedding generation build with text
 embedder = create_embedding_model("huggingface", "allenai/scibert_scivocab_uncased")
+# embedder = create_embedding_model("sentence-transformers", "allenai/scibert_scivocab_uncased")
 
 # determine which source/target keys are in the eval set
 eval_src = {src_key[0] for src_key, _, _ in task_aligns}
