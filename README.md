@@ -26,6 +26,9 @@ Should you want to add a new evaluation, you may consider adding an `experiments
 
 The OAEI datasets will be stored at `experiments/datasets/OAEI/<track>/<dataset>`. If you want to test multiple times, we advised to cache the query results and provide a path to it at `experiments/configs/dictionary.json`.
 
+## Updates
+KROMA is currently undergoing maintenance to resolve dependency issues and ensure a seamless release. The final version will be available soon.
+
 ---
 
 Should you need to refer to this work or find our codebase useful, please consider citing our work as:
