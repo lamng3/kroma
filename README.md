@@ -1,5 +1,5 @@
 # KROMA
-Ontology Matching with Knowledge Retrieval and Large Language Models
+Ontology Matching with Knowledge Retrieval and Large Language Models (ISWC 2025)
 
 ## Environment Setup
 We provide the minimum environment requirements to support the running of our project. This means there can be a slight difference depending on the actual automatic dependency-solving result of different systems.
