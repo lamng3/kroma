@@ -8,8 +8,6 @@ KROMA matches concepts across ontologies by retrieving local context and asking 
 
 The full paper PDF is in this repository at [`full.pdf`](full.pdf). The arXiv version is [https://arxiv.org/abs/2507.14032](https://arxiv.org/abs/2507.14032).
 
-[AgentOI](https://github.com/lamng3/agentoi) is the extended toolkit built from this matcher.
-
 ## Quick start
 
 KROMA requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
