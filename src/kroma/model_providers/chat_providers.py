@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Tuple
-from .providers import ChatProvider
+from .providers import ChatProvider, parse_chat_response
 
 class OpenAIProvider(ChatProvider):
     """
@@ -45,13 +45,7 @@ class OpenAIProvider(ChatProvider):
         Returns (message, prompt_tokens, completion_tokens).
         If include_tokens=False, returns (message, None, None).
         """
-        choice = response.choices[0].message
-        message = getattr(choice, "parsed", choice.content)
-        prompt_tokens = getattr(response.usage, "prompt_tokens", None)
-        completion_tokens = getattr(response.usage, "completion_tokens", None)
-        if include_tokens:
-            return message, prompt_tokens, completion_tokens
-        return message, None, None
+        return parse_chat_response(response, include_tokens)
 
 
 class TogetherProvider(ChatProvider):
@@ -98,10 +92,4 @@ class TogetherProvider(ChatProvider):
         Returns (message, prompt_tokens, completion_tokens).
         If include_tokens=False, returns (message, None, None).
         """
-        choice = response.choices[0].message
-        message = getattr(choice, "parsed", choice.content)
-        prompt_tokens = getattr(response.usage, "prompt_tokens", None)
-        completion_tokens = getattr(response.usage, "completion_tokens", None)
-        if include_tokens:
-            return message, prompt_tokens, completion_tokens
-        return message, None, None
+        return parse_chat_response(response, include_tokens)

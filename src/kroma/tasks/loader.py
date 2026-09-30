@@ -1,13 +1,10 @@
 import csv
-import random
 import ast
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 from rdflib import Graph, RDF, OWL, RDFS
-
-random.seed(2025)
 
 
 class OntologyLoader(ABC):

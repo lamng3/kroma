@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from inference.factory import create_inference_model
+from kroma.inference.factory import create_inference_model
 
 def create_agents_from_config(
     configs: List[Dict[str, str]]

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kroma"
+version = "0.1.0"
+description = "Ontology matching with knowledge retrieval and large language models"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "Lam Nguyen" },
+]
+classifiers = [
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "numpy",
+  "python-dotenv",
+  "rdflib",
+  "requests",
+]
+
+[project.optional-dependencies]
+models = [
+  "nltk",
+  "networkx",
+  "node2vec",
+  "openai",
+  "scikit-learn",
+  "scipy",
+  "sentence-transformers",
+  "SPARQLWrapper",
+  "together",
+  "torch",
+  "transformers",
+]
+dev = ["pytest"]
+
+[project.scripts]
+kroma = "kroma.cli:main"
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2507.14032"
+Repository = "https://github.com/lamng3/kroma"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["kroma*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

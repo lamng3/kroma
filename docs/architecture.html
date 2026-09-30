@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture · KROMA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a href="index.html"><strong>KROMA</strong></a>
+    <nav>
+      <a href="getting-started.html">Get started</a>
+      <a class="active" href="architecture.html">Architecture</a>
+      <a href="api.html">API</a>
+      <a href="experiments.html">Experiments</a>
+      <a href="reference.html">Reference</a>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Guide 02</p>
+    <h1>Architecture</h1>
+    <p class="lede">One run loads a method config, scores alignment pairs, and writes predictions.</p>
+
+    <div class="flow">
+      <section class="card"><h3>Config</h3><p><code>kroma run</code> reads a method JSONL and the dataset JSON it names.</p></section>
+      <section class="card"><h3>Task</h3><p>CSV rows become source and target graphs plus a sampled alignment list.</p></section>
+      <section class="card"><h3>Index</h3><p>SciBERT and Node2Vec vectors fill two in-memory stores.</p></section>
+      <section class="card"><h3>Decision</h3><p>A single model or a debate returns yes or no and a confidence.</p></section>
+    </div>
+
+    <h2>Package</h2>
+    <p>Installable code lives in <code>src/kroma/</code>. Experiment configs stay in <code>experiments/</code> and are not imported as a library.</p>
+    <table>
+      <tr><th>Module</th><th>Role</th></tr>
+      <tr><td><code>cli</code></td><td><code>RunCommand</code> parses flags and starts a run.</td></tr>
+      <tr><td><code>pipeline</code></td><td><code>MatchingRun</code> prepares, scores, and writes metrics.</td></tr>
+      <tr><td><code>tasks</code></td><td>Loaders, prompt builders, and query strategies.</td></tr>
+      <tr><td><code>agents</code></td><td>Single-model and debate inference.</td></tr>
+      <tr><td><code>inference</code></td><td>Factory for chat and embedding backends.</td></tr>
+      <tr><td><code>algorithms</code></td><td>Node2Vec fusion and online or offline refinement.</td></tr>
+      <tr><td><code>repository</code></td><td>Prediction JSONL and expert-review CSV.</td></tr>
+    </table>
+
+    <h2>Extension points</h2>
+    <ul>
+      <li><code>register_chat_backend</code> and <code>register_embedding_backend</code> add model providers.</li>
+      <li><code>register_query_strategy</code> adds a context source such as a dictionary or SPARQL endpoint.</li>
+      <li><code>OntologyLoader</code> is the base for a new alignment file format.</li>
+      <li><code>InferenceStrategy</code> is the base for a new judging procedure.</li>
+    </ul>
+  </main>
+  <footer>KROMA · Lam Nguyen, Erika Barcelos, Roger French, and Yinghui Wu</footer>
+</body>
+</html>

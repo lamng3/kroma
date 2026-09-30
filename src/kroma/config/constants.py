@@ -5,6 +5,34 @@ DEFAULT_EMBED_MODEL = "allenai/scibert_scivocab_uncased"
 
 # total number of tokens
 TOTAL_TOKENS_LIMIT = 8000
+CHARS_PER_TOKEN = 4
+
+RANDOM_SEED = 42
+N_SHOT_DEMO = 5
+RETRIEVAL_TOP_K = 3
+DICT_QUERY_TOP_K = 3
+CONCEPTNET_TOP_K = 5
+OFFLINE_REFINE_EVERY = 5
+RETRY_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.5
+
+EVAL_SIZE_FRACTIONS = {
+    "xsmall": 0.2,
+    "small": 0.4,
+    "medium": 0.6,
+    "large": 0.8,
+    "full": 1.0,
+}
+
+NODE2VEC_DEFAULTS = {
+    "dimensions": 128,
+    "walk_length": 30,
+    "num_walks": 200,
+    "p": 1,
+    "q": 1,
+    "workers": 4,
+    "seed": RANDOM_SEED,
+}
 
 # maximum “token budget” for cost normalization
 N_TOKENS = 1_000_000

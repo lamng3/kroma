@@ -1,5 +1,4 @@
-from dataclasses import dataclass, fields
-from utils.env import get_env
+from dataclasses import dataclass
 
 @dataclass
 class APIStats():
@@ -15,7 +14,7 @@ class ModelArguments:
     api_key: str = None
     temperature: float = 0.7
     max_tokens: int = 4000
-    host_url: str = get_env('OLLAMA_HOST')  # if using an ollama server
+    host_url: str = None
 
 @dataclass
 class ModelMetadata:
@@ -25,4 +24,4 @@ class ModelMetadata:
 @dataclass
 class EmbeddingArguments():
     model_name: str
-    host_url: str = get_env('OLLAMA_HOST')
+    host_url: str = None

@@ -1,11 +1,11 @@
 from typing import Type, Dict
-from utils.env import get_env
-from config.constants import METADATA, DEFAULT_CHAT_BACKEND, DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL
-from config.arguments import ModelArguments, ModelMetadata, EmbeddingArguments
+from kroma.utils.env import get_env
+from kroma.config.constants import METADATA, DEFAULT_CHAT_BACKEND, DEFAULT_CHAT_MODEL, DEFAULT_EMBED_MODEL
+from kroma.config.arguments import ModelArguments, ModelMetadata, EmbeddingArguments
 
-from model_providers.base_model import BaseModel, BaseEmbeddingModel
-from model_providers.chat_providers import OpenAIProvider, TogetherProvider
-from model_providers.embedding_providers import HFEmbeddingProvider, STEmbeddingProvider
+from kroma.model_providers.base_model import BaseModel, BaseEmbeddingModel
+from kroma.model_providers.chat_providers import OpenAIProvider, TogetherProvider
+from kroma.model_providers.embedding_providers import HFEmbeddingProvider, STEmbeddingProvider
 
 # registry of available chat‐completion backends
 CHAT_BACKENDS: Dict[str, Type] = {
@@ -18,6 +18,16 @@ EMBED_BACKENDS: Dict[str, Type] = {
     "huggingface": HFEmbeddingProvider,
     "sentence-transformers": STEmbeddingProvider,
 }
+
+
+def register_chat_backend(name: str, provider_cls: Type) -> None:
+    """Register a chat backend plugin."""
+    CHAT_BACKENDS[name] = provider_cls
+
+
+def register_embedding_backend(name: str, provider_cls: Type) -> None:
+    """Register an embedding backend plugin."""
+    EMBED_BACKENDS[name] = provider_cls
 
 
 def create_inference_model(

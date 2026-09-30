@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KROMA Documentation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a href="index.html"><strong>KROMA</strong></a>
+    <nav>
+      <a href="getting-started.html">Get started</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="api.html">API</a>
+      <a href="experiments.html">Experiments</a>
+      <a href="reference.html">Reference</a>
+    </nav>
+  </header>
+  <main class="hero">
+    <section class="hero-layout">
+      <div>
+        <p class="eyebrow">KROMA documentation</p>
+        <h1>Ontology matching with retrieval and language models</h1>
+        <p class="lede">
+          KROMA aligns concepts across two ontologies. It retrieves nearby labels,
+          asks a model if the pair matches, and refines the joined graph.
+        </p>
+        <div class="actions">
+          <a class="button" href="getting-started.html">Get started</a>
+          <a class="button secondary" href="https://arxiv.org/abs/2507.14032">Read the paper</a>
+        </div>
+      </div>
+      <div class="terminal" aria-label="KROMA installation commands">
+        <pre><code><span class="prompt">$</span> git clone https://github.com/lamng3/kroma.git
+cd kroma
+./setup.sh
+source .venv/bin/activate
+<span class="prompt">$</span> kroma --help
+<span class="prompt">$</span> kroma run --method_config kroma_scibert_envo_sweet \
+  --llm meta-llama/Llama-3.3-70B-Instruct-Turbo-Free --baseline</code></pre>
+      </div>
+    </section>
+
+    <div class="stats" aria-label="Project facts">
+      <div class="stat"><strong>ISWC 2025</strong><span>Research track</span></div>
+      <div class="stat"><strong>Six tracks</strong><span>OAEI-style datasets</span></div>
+      <div class="stat"><strong>Python 3.12</strong><span>Supported runtime</span></div>
+    </div>
+
+    <h2>Paper</h2>
+    <p>
+      <a href="https://arxiv.org/abs/2507.14032">arXiv:2507.14032</a>
+      is the public paper. The full PDF shipped with this repository is
+      <a href="https://github.com/lamng3/kroma/blob/main/full.pdf"><code>full.pdf</code></a>
+      at the repository root.
+    </p>
+
+    <h2>Workflow</h2>
+    <div class="flow">
+      <section class="card"><h3>Load</h3><p>Read alignment CSVs and cached concept dictionaries.</p></section>
+      <section class="card"><h3>Retrieve</h3><p>Combine SciBERT text with Node2Vec structure.</p></section>
+      <section class="card"><h3>Judge</h3><p>Ask one model, or a debate of models, for yes or no.</p></section>
+      <section class="card"><h3>Refine</h3><p>Update the joined graph online, then collapse it offline.</p></section>
+    </div>
+
+    <h2>Documentation</h2>
+    <div class="grid">
+      <a class="card" href="getting-started.html"><span class="number">GUIDE 01</span><h3>Getting started</h3><p>Install, configure keys, and place datasets.</p></a>
+      <a class="card" href="architecture.html"><span class="number">GUIDE 02</span><h3>Architecture</h3><p>Follow one pair from CSV to prediction file.</p></a>
+      <a class="card" href="api.html"><span class="number">GUIDE 03</span><h3>API reference</h3><p>CLI, loaders, models, retrieval, and refinement.</p></a>
+      <a class="card" href="experiments.html"><span class="number">GUIDE 04</span><h3>Experiments</h3><p>Tracks, configs, and the ENVO-SWEET script.</p></a>
+      <a class="card" href="reference.html"><span class="number">GUIDE 05</span><h3>Reference</h3><p>Environment, paths, and citation.</p></a>
+    </div>
+  </main>
+  <footer>KROMA · Lam Nguyen, Erika Barcelos, Roger French, and Yinghui Wu</footer>
+</body>
+</html>

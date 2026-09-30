@@ -2,9 +2,7 @@ import random
 import itertools
 from collections import defaultdict
 from typing import List, Tuple, Dict, Any
-from tasks.query_engine import query
-
-random.seed(2025)
+from kroma.tasks.query_engine import query
 
 
 def build_ontology_expansion_task(

@@ -1,12 +1,6 @@
-import nltk
 from typing import List, Tuple, Dict, Any, Optional
 
 from .templates import SYSTEM_PROMPT, TASK_PROMPT, ROUND_PROMPT, LAST_ROUND_PROMPT
-
-# ensure wordlist for cleaning
-nltk.download('words', quiet=True)
-from nltk.corpus import words
-ENGLISH_WORDS = set(words.words())
 
 # ----------------------------------------------------------------------------
 # Helpers
@@ -79,23 +73,44 @@ def build_task_prompt(
     return SYSTEM_PROMPT, user
 
 
+def _history_block(history) -> str:
+    """Format either an agent-id map or a list of (answer, confidence) pairs."""
+    if isinstance(history, dict):
+        return '\n'.join(
+            f"Agent {aid+1}: {' '.join(map(str, ans))}"
+            for aid, ans in history.items()
+        )
+    return '\n'.join(f"{ans} (confidence {conf})" for ans, conf in history or [])
+
+
+def _coerce_history(source, target, history):
+    """Accept build_round_prompt(history) and build_round_prompt(src, tgt, history)."""
+    if history is None and isinstance(source, (dict, list)):
+        return source
+    return history
+
+
 def build_round_prompt(
-    history: Dict[int, List[int]]
+    source=None,
+    target=None,
+    history=None,
+    perturb: bool = False,
 ) -> Tuple[str, str]:
     """
     Build (system, user) prompt for intermediate rounds.
     """
-    agent_str = '\n'.join(f"Agent {aid+1}: {' '.join(map(str, ans))}"
-                          for aid, ans in history.items())
-    return SYSTEM_PROMPT, ROUND_PROMPT.format(agent_answers=agent_str)
+    history = _coerce_history(source, target, history)
+    return SYSTEM_PROMPT, ROUND_PROMPT.format(agent_answers=_history_block(history))
 
 
 def build_last_round_prompt(
-    history: Dict[int, List[int]]
+    source=None,
+    target=None,
+    history=None,
+    perturb: bool = False,
 ) -> Tuple[str, str]:
     """
     Build (system, user) prompt for the final round.
     """
-    agent_str = '\n'.join(f"Agent {aid+1}: {' '.join(map(str, ans))}"
-                          for aid, ans in history.items())
-    return SYSTEM_PROMPT, LAST_ROUND_PROMPT.format(agent_answers=agent_str)
+    history = _coerce_history(source, target, history)
+    return SYSTEM_PROMPT, LAST_ROUND_PROMPT.format(agent_answers=_history_block(history))

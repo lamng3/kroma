@@ -1,37 +1,56 @@
 # KROMA
-Ontology Matching with Knowledge Retrieval and Large Language Models (ISWC 2025)
 
-## Environment Setup
-We provide the minimum environment requirements to support the running of our project. This means there can be a slight difference depending on the actual automatic dependency-solving result of different systems.
+KROMA matches concepts across ontologies by retrieving local context and asking a large language model whether two concepts refer to the same thing. It evaluates six OAEI-style tracks: Mouse-Human, NCIT-DOID, Nell-DBpedia, YAGO-Wikidata, ENVO-SWEET, and MI-MatOnto.
 
-Should one be interested in reproducing a certain method, please look up the corresponding requirement file and install listed packages accordingly.
+[Paper](https://arxiv.org/abs/2507.14032) ·
+[Full PDF](full.pdf) ·
+[Documentation](docs/index.html)
+
+The full paper PDF is in this repository at [`full.pdf`](full.pdf). The arXiv version is [https://arxiv.org/abs/2507.14032](https://arxiv.org/abs/2507.14032).
+
+[AgentOI](https://github.com/lamng3/agentoi) is the extended toolkit built from this matcher.
+
+## Quick start
+
+KROMA requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+git clone https://github.com/lamng3/kroma.git
+cd kroma
+./setup.sh
+source .venv/bin/activate
+kroma --help
 ```
-pip install --upgrade pip
-pip install -r requirements.txt
+
+Copy `.env.example` to `.env` and set `TOGETHERAI_API_KEY` or `OPENAI_API_KEY`. Place the downloaded alignment CSVs and dictionary caches under `experiments/dataset/`, using the paths in `experiments/configs/`.
+
+Install the model backends before a real run:
+
+```bash
+uv pip install ".[models]"
 ```
 
-## Dataset and Access Preparation
-Currently, our method features 6 datasets (Mouse-Human, NCIT-DOID, Nell-DBpedia, YAGO-Wikidata, ENVO-SWEET, MI-MatOnto). Please provide the downloaded datasets in `experiments/dataset/`.
+Reproduce the ENVO-SWEET baseline with Llama 3.3 70B:
 
-Our paper features models provided by `TogetherAI`'s API. So please supply your TogetherAI access token in the `.env` file. 
+```bash
+kroma run \
+  --method_config kroma_scibert_envo_sweet \
+  --llm meta-llama/Llama-3.3-70B-Instruct-Turbo-Free \
+  --baseline
+```
 
-## Experiment Reproduction
-We supply a sample script to run an experiment on `ENVO-SWEET` track with `Llama-3.3-70B` in the `scripts/run_envo_sweet.sh`. We provided a dynamic results saving to the script so that the results files will be automatically updated with the newest predicted pairs.
+Accepted alignments are written under `results/baseline/envo_sweet`. Pairs that need an expert are written under `reviews/baseline/envo_sweet`.
 
-## Result Digestion
-The final results can be find under 2 folders. For example, after running the `ENVO-SWEET` experiment, you can find the results under `results/baseline/envo_sweet` for accepted alignments and `reviews/baseline/envo_sweet` for reviews needed by experts
+Open the docs from the repository:
 
-## Codebase Design and Contribution
-Should you want to add a new evaluation, you may consider adding an `experiments/configs/method/<llm>` folder for the LLMs you want to evaluated on, and supply corresponding `.jsonl` for the dataset and the configurations you want to evaluate on. For a new dataset, add a folder `experiments/configs/dataset/<dataset>.json` to point towards the dataset you wish to add.
+```bash
+python -m http.server -d docs 8000
+```
 
-The OAEI datasets will be stored at `experiments/datasets/OAEI/<track>/<dataset>`. If you want to test multiple times, we advised to cache the query results and provide a path to it at `experiments/configs/dictionary.json`.
+Then visit `http://127.0.0.1:8000`.
 
-## Updates
-KROMA is currently undergoing maintenance to resolve dependency issues and ensure a seamless release. The final version will be available soon.
+## Citation
 
----
-
-Should you need to refer to this work or find our codebase useful, please consider citing our work as:
 ```
 @inproceedings{nguyen_2025_kroma,
     title={KROMA: Knowledge Retrieval Ontology Matching using Large Language Models},

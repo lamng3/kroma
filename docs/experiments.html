@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Experiments · KROMA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a href="index.html"><strong>KROMA</strong></a>
+    <nav>
+      <a href="getting-started.html">Get started</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="api.html">API</a>
+      <a class="active" href="experiments.html">Experiments</a>
+      <a href="reference.html">Reference</a>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Guide 04</p>
+    <h1>Experiments</h1>
+    <p class="lede">Each run is a method config plus a dataset config. Results land next to the repository, not inside the package.</p>
+
+    <h2>Tracks</h2>
+    <table>
+      <tr><th>Track</th><th>Config</th><th>CSV folder</th></tr>
+      <tr><td>Mouse-Human</td><td><code>mouse_human</code></td><td><code>experiments/dataset/OAEI/Anatomy</code></td></tr>
+      <tr><td>NCIT-DOID</td><td><code>ncit_doid</code></td><td><code>experiments/dataset/OAEI/BioLLM</code></td></tr>
+      <tr><td>Nell-DBpedia</td><td><code>nell_dbpedia</code></td><td><code>experiments/dataset/OAEI/CommonKG</code></td></tr>
+      <tr><td>YAGO-Wikidata</td><td><code>yago_wikidata</code></td><td><code>experiments/dataset/OAEI/CommonKG</code></td></tr>
+      <tr><td>ENVO-SWEET</td><td><code>envo_sweet</code></td><td><code>experiments/dataset/OAEI/Biodiv</code></td></tr>
+      <tr><td>MI-MatOnto</td><td><code>mi_matonto</code></td><td><code>experiments/dataset/OAEI/MSE</code></td></tr>
+    </table>
+
+    <h2>ENVO-SWEET</h2>
+    <p><code>scripts/run_envo_sweet.sh</code> runs the Llama 3.3 70B baseline:</p>
+    <pre><code>kroma run \
+  --method_config kroma_scibert_envo_sweet \
+  --llm meta-llama/Llama-3.3-70B-Instruct-Turbo-Free \
+  --baseline</code></pre>
+    <p>Method files live under <code>experiments/configs/method/&lt;llm&gt;/</code>. Add a model by adding a folder and a <code>.jsonl</code> file. Add a dataset by adding <code>experiments/configs/datasets/&lt;name&gt;.json</code>.</p>
+
+    <h2>Outputs</h2>
+    <ul>
+      <li><code>results/baseline/&lt;task&gt;/</code> stores accepted prediction JSONL and a <code>.metrics.json</code> summary.</li>
+      <li><code>reviews/baseline/&lt;task&gt;/expert_queries.csv</code> stores pairs sent for expert review.</li>
+      <li><code>logs/kroma.log</code> stores the run log.</li>
+    </ul>
+    <p><code>--size</code> can be <code>xsmall</code>, <code>small</code>, <code>medium</code>, <code>large</code>, or <code>full</code>.</p>
+  </main>
+  <footer>KROMA · Lam Nguyen, Erika Barcelos, Roger French, and Yinghui Wu</footer>
+</body>
+</html>

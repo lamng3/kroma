@@ -1,15 +1,21 @@
 from typing import Any, Dict, List, Optional, Tuple
-from config.arguments import (
+from kroma.config.arguments import (
     ModelArguments, 
     ModelMetadata, 
     EmbeddingArguments,
     APIStats,
 )
-from model_providers.providers import (
+from kroma.model_providers.providers import (
     ChatProvider, 
     EmbeddingProvider,
 )
-from config.constants import TOTAL_TOKENS_LIMIT
+from kroma.config.constants import (
+    CHARS_PER_TOKEN,
+    RETRY_ATTEMPTS,
+    RETRY_BACKOFF_SECONDS,
+    TOTAL_TOKENS_LIMIT,
+)
+from kroma.decorators import retry
 
 class BaseModel:
     """
@@ -57,14 +63,8 @@ class BaseModel:
         temp = temperature if temperature is not None else self.args.temperature
         mtok = max_tokens if max_tokens is not None else self.args.max_tokens
 
-        # 4. send to provider
-        raw = self.provider.create_completion(
-            model=self.args.model_name,
-            messages=messages,
-            temperature=temp,
-            max_tokens=mtok,
-            response_format=response_format,
-        )
+        # 4. send to provider, retrying transient API failures
+        raw = self._complete(messages, temp, mtok, response_format)
 
         # 5. parse response
         msg, in_tok, out_tok = self.provider.parse_response(raw, include_tokens)
@@ -83,6 +83,16 @@ class BaseModel:
 
         return (msg, in_tok, out_tok) if include_tokens else msg
 
+    @retry(attempts=RETRY_ATTEMPTS, backoff=RETRY_BACKOFF_SECONDS)
+    def _complete(self, messages, temp, mtok, response_format):
+        return self.provider.create_completion(
+            model=self.args.model_name,
+            messages=messages,
+            temperature=temp,
+            max_tokens=mtok,
+            response_format=response_format,
+        )
+
     def _truncate_conversation(self, messages: List[Dict[str,str]]) -> List[Dict[str,str]]:
         """
         Keep the system prompt plus as many most recent messages
@@ -90,7 +100,7 @@ class BaseModel:
         """
         # quick token estimate (1 token ~4 chars)
         def est_tokens(text: str) -> int:
-            return len(text) // 4
+            return len(text) // CHARS_PER_TOKEN
 
         keep = [messages[0]]
         used = est_tokens(messages[0]["content"])

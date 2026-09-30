@@ -1,11 +1,4 @@
-import re
 from typing import List, Tuple, Dict, Any
-import nltk
-from nltk.corpus import words
-
-# ensure wordlist
-nltk.download('words', quiet=True)
-ENGLISH_WORDS = set(words.words())
 
 # ----------------------------------------------------------------------------
 # Templates

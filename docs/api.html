@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>API reference · KROMA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a href="index.html"><strong>KROMA</strong></a>
+    <nav>
+      <a href="getting-started.html">Get started</a>
+      <a href="architecture.html">Architecture</a>
+      <a class="active" href="api.html">API</a>
+      <a href="experiments.html">Experiments</a>
+      <a href="reference.html">Reference</a>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Python API</p>
+    <h1>API reference</h1>
+    <p class="lede">Public entry points for running a match, loading alignments, calling a model, and refining the graph.</p>
+
+    <div class="api-layout">
+      <aside class="api-index" aria-label="API table of contents">
+        <strong>On this page</strong>
+        <a href="#cli">CLI</a>
+        <a href="#run">Matching run</a>
+        <a href="#loaders">Loaders</a>
+        <a href="#query">Query strategies</a>
+        <a href="#models">Models</a>
+        <a href="#retrieval">Retrieval</a>
+        <a href="#refinement">Refinement</a>
+        <a href="#metrics">Metrics</a>
+      </aside>
+      <div class="api-content">
+
+        <section id="cli" class="api-section">
+          <p class="eyebrow">kroma.cli</p>
+          <h2>RunCommand</h2>
+          <p>The command that starts one experiment from parsed arguments.</p>
+          <pre class="signature"><code>RunCommand(args).execute() -&gt; None</code></pre>
+          <pre><code>kroma run \
+  --method_config kroma_scibert_envo_sweet \
+  --llm meta-llama/Llama-3.3-70B-Instruct-Turbo-Free \
+  --baseline</code></pre>
+          <p><code>--debate</code> is a boolean flag. Omit it for a single model.</p>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/cli.py">cli.py</a></p>
+        </section>
+
+        <section id="run" class="api-section">
+          <p class="eyebrow">kroma.pipeline</p>
+          <h2>MatchingRun</h2>
+          <p>Template for a run: prepare the task, score pairs, then write metrics.</p>
+          <pre class="signature"><code>MatchingRun(args, listener=None)
+MatchingRun.execute() -&gt; dict</code></pre>
+          <table>
+            <tr><th>Method</th><th>Purpose</th></tr>
+            <tr><td><code>prepare()</code></td><td>Load configs, build the task, and fill the vector stores.</td></tr>
+            <tr><td><code>score_pairs()</code></td><td>Judge each alignment and record the prediction.</td></tr>
+            <tr><td><code>finish()</code></td><td>Run the final offline refinement and write the metrics JSON.</td></tr>
+          </table>
+          <p><code>MetricsListener</code> collects token counts and refinement timings for that run.</p>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/pipeline.py">pipeline.py</a></p>
+        </section>
+
+        <section id="loaders" class="api-section">
+          <p class="eyebrow">kroma.tasks.loader</p>
+          <h2>OntologyLoader</h2>
+          <p>Base class for alignment sources. <code>CsvAlignmentLoader</code> reads benchmark CSVs. <code>OwlOntologyLoader</code> reads a class hierarchy from OWL.</p>
+          <pre class="signature"><code>CsvAlignmentLoader(csv_paths, dataset="ncit-doid").load()
+  -&gt; (source_graph, target_graph, alignments)</code></pre>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/tasks/loader.py">loader.py</a></p>
+        </section>
+
+        <section id="query" class="api-section">
+          <p class="eyebrow">kroma.tasks.query_engine</p>
+          <h2>Query strategies</h2>
+          <p><code>query</code> merges parents, children, synonyms, and labels from each requested source.</p>
+          <table>
+            <tr><th>Strategy</th><th>Option names</th></tr>
+            <tr><td><code>DictionaryStrategy</code></td><td><code>envo</code>, <code>sweet</code>, <code>mouse</code>, <code>human</code>, <code>yago</code>, <code>wikidata</code>, <code>mi</code>, <code>mi2</code>, <code>matonto</code>, <code>emmo</code>, <code>omim</code>, <code>ordo</code></td></tr>
+            <tr><td><code>SparqlStrategy</code></td><td><code>ncit</code>, <code>doid</code>, <code>dbpedia</code></td></tr>
+            <tr><td><code>OntologyStrategy</code></td><td><code>ontology</code></td></tr>
+            <tr><td><code>ConceptNetStrategy</code></td><td><code>conceptnet</code></td></tr>
+          </table>
+          <pre class="signature"><code>register_query_strategy(name, strategy) -&gt; None
+query(concept_code, pcmap, dictionary, options) -&gt; parents, children, synonyms, labels</code></pre>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/tasks/query_engine.py">query_engine.py</a></p>
+        </section>
+
+        <section id="models" class="api-section">
+          <p class="eyebrow">kroma.inference</p>
+          <h2>Model factory</h2>
+          <p>Chat providers adapt OpenAI and Together through one response parser. Embedding providers adapt Hugging Face and sentence-transformers.</p>
+          <pre class="signature"><code>create_inference_model(backend, model_name) -&gt; BaseModel
+create_embedding_model(backend, model_name) -&gt; BaseEmbeddingModel
+register_chat_backend(name, provider_cls) -&gt; None
+register_embedding_backend(name, provider_cls) -&gt; None</code></pre>
+          <p><code>BaseModel.generate</code> retries transient connection, timeout, and rate-limit errors.</p>
+          <table>
+            <tr><th>Class</th><th>Role</th></tr>
+            <tr><td><code>SingleModelInference</code></td><td>One agent, one round.</td></tr>
+            <tr><td><code>DebateInference</code></td><td>One agent per config, for the configured number of rounds.</td></tr>
+          </table>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/inference/factory.py">factory.py</a> <a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/agents/inference.py">inference.py</a></p>
+        </section>
+
+        <section id="retrieval" class="api-section">
+          <p class="eyebrow">kroma.retrieval</p>
+          <h2>VectorStore</h2>
+          <pre class="signature"><code>VectorStore.add(ext_ids, embeddings) -&gt; None
+VectorStore.query(query_emb, top_k=5) -&gt; list[(id, score)]</code></pre>
+          <p>Combined embeddings use <code>compute_combined_embeddings</code> with concatenation of text and Node2Vec vectors.</p>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/retrieval/vector_store.py">vector_store.py</a></p>
+        </section>
+
+        <section id="refinement" class="api-section">
+          <p class="eyebrow">kroma.algorithms.refinement</p>
+          <h2>Refinement</h2>
+          <pre class="signature"><code>offline_refine(adj, rank_attr) -&gt; dict
+online_refine(full_graph, rank_attr, equiv_classes, delta_edges, pred)
+  -&gt; (equiv_classes, expert_questions)</code></pre>
+          <p><code>compute_node_ranks</code> assigns each node its longest distance from a root. <code>PredictionRepository</code> appends accepted rows, and <code>ReviewRepository</code> records expert questions.</p>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/algorithms/refinement.py">refinement.py</a></p>
+        </section>
+
+        <section id="metrics" class="api-section">
+          <p class="eyebrow">kroma.metrics.scoring</p>
+          <h2>calculate_metrics</h2>
+          <pre class="signature"><code>calculate_metrics(y_true, y_pred, positive_label=1) -&gt; (precision, recall, f1)</code></pre>
+          <p><a class="source-link" href="https://github.com/lamng3/kroma/blob/main/src/kroma/metrics/scoring.py">scoring.py</a></p>
+        </section>
+
+      </div>
+    </div>
+  </main>
+  <footer>KROMA · Lam Nguyen, Erika Barcelos, Roger French, and Yinghui Wu</footer>
+</body>
+</html>

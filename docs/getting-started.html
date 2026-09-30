@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting started · KROMA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <a href="index.html"><strong>KROMA</strong></a>
+    <nav>
+      <a class="active" href="getting-started.html">Get started</a>
+      <a href="architecture.html">Architecture</a>
+      <a href="api.html">API</a>
+      <a href="experiments.html">Experiments</a>
+      <a href="reference.html">Reference</a>
+    </nav>
+  </header>
+  <main>
+    <p class="eyebrow">Guide 01</p>
+    <h1>Getting started</h1>
+    <p class="lede">Install the package, point it at a dataset, and run one configured experiment.</p>
+
+    <h2>Install</h2>
+    <pre><code>git clone https://github.com/lamng3/kroma.git
+cd kroma
+./setup.sh
+source .venv/bin/activate
+kroma --help</code></pre>
+    <p><code>kroma --help</code> does not download a model. A matching run needs the model extra:</p>
+    <pre><code>uv pip install ".[models]"</code></pre>
+
+    <h2>API keys</h2>
+    <p>Copy <code>.env.example</code> to <code>.env</code>. Together models read <code>TOGETHERAI_API_KEY</code>. OpenAI models read <code>OPENAI_API_KEY</code>.</p>
+
+    <h2>Datasets</h2>
+    <p>Put alignment CSVs and dictionary JSONL files under <code>experiments/dataset/</code>. Dataset configs in <code>experiments/configs/datasets/</code> name the CSV folder. <code>experiments/configs/dictionary.json</code> names each cache file. Those paths are gitignored because the benchmarks are downloaded separately.</p>
+
+    <h2>Run</h2>
+    <pre><code>kroma run \
+  --method_config kroma_scibert_envo_sweet \
+  --llm meta-llama/Llama-3.3-70B-Instruct-Turbo-Free \
+  --baseline</code></pre>
+    <p>The same flags work as <code>python -m main --method_config ...</code>.</p>
+
+    <h2>Read the docs site</h2>
+    <pre><code>python -m http.server -d docs 8000</code></pre>
+    <p>The full paper PDF is <a href="https://github.com/lamng3/kroma/blob/main/full.pdf"><code>full.pdf</code></a> in the repository root. The arXiv record is <a href="https://arxiv.org/abs/2507.14032">2507.14032</a>.</p>
+  </main>
+  <footer>KROMA · Lam Nguyen, Erika Barcelos, Roger French, and Yinghui Wu</footer>
+</body>
+</html>

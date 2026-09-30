@@ -30,6 +30,17 @@ class ChatProvider(ABC):
         pass
 
 
+def parse_chat_response(response: Any, include_tokens: bool) -> Tuple[str, int, int]:
+    """Shared adapter for OpenAI-compatible chat responses."""
+    choice = response.choices[0].message
+    message = getattr(choice, "parsed", choice.content)
+    if not include_tokens:
+        return message, None, None
+    prompt_tokens = getattr(response.usage, "prompt_tokens", None)
+    completion_tokens = getattr(response.usage, "completion_tokens", None)
+    return message, prompt_tokens, completion_tokens
+
+
 class EmbeddingProvider(ABC):
     """abstract interface for all embedding backends."""
     @abstractmethod
