@@ -11,6 +11,8 @@ NCIT-DOID, Nell-DBpedia, YAGO-Wikidata, ENVO-SWEET, and MI-MatOnto.
 [Full PDF](full.pdf) ·
 [Documentation](https://lamng3.github.io/kroma-docs/)
 
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC_BY_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+
 ## How it works
 
 One run scores every alignment pair of a track in four steps.
@@ -143,9 +145,9 @@ uv pip install ".[dev]"
 pytest -q
 ```
 
-## Citation
+## How to Cite
 
-If you use KROMA, please cite:
+If you use KROMA in your work, please cite:
 
 ```bibtex
 @inproceedings{nguyen_2025_kroma,
@@ -159,3 +161,7 @@ If you use KROMA, please cite:
     doi={10.1007/978-3-032-09527-5_34},
 }
 ```
+
+## License
+
+KROMA is released under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).

@@ -10,7 +10,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [
   { name = "Lam Nguyen" },
+  { name = "Erika Barcelos" },
+  { name = "Roger French" },
+  { name = "Yinghui Wu" },
 ]
+license = "CC-BY-4.0"
 classifiers = [
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",

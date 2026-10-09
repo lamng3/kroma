@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "KROMA: Ontology Matching with Knowledge Retrieval and Large Language Models"
+authors:
+  - family-names: Nguyen
+    given-names: Lam
+  - family-names: Barcelos
+    given-names: Erika
+  - family-names: French
+    given-names: Roger
+  - family-names: Wu
+    given-names: Yinghui
+year: 2025
+doi: 10.1007/978-3-032-09527-5_34
+url: "https://github.com/lamng3/kroma"
