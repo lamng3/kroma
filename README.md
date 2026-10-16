@@ -192,6 +192,20 @@ returns the metrics dictionary.
 </details>
 
 <details>
+<summary><b>KROMA as an agent on a shared memory</b></summary>
+
+`kroma.integrations.mneme.KromaMatcher` runs KROMA's online refinement as an
+agent on a [Mneme](https://github.com/lamng3/mneme) blackboard, so it can share
+one memory with other agents (MOIRA hosts such a workflow). It consumes
+`match_request` memories and writes `match` and `review` memories with their
+provenance; a restarted matcher rebuilds its equivalence classes from memory.
+The judge is any function returning KROMA's (prediction, confidence, accept),
+such as the language-model debate. An agent that looks up a concept's matches
+derives from `alignment_read(concept)`, so a later match makes its result stale.
+
+</details>
+
+<details>
 <summary><b>Repository layout and development</b></summary>
 
 ```text
