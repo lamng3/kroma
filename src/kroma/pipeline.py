@@ -28,6 +28,7 @@ from kroma.config.constants import (
 from kroma.decorators import timed
 from kroma.inference.factory import create_embedding_model
 from kroma.metrics.scoring import calculate_metrics
+from kroma.costs import api_cost
 from kroma.observers import MetricsListener
 from kroma.repository import PredictionRepository, ReviewRepository
 from kroma.retrieval.vector_store import VectorStore
@@ -100,6 +101,7 @@ class MatchingRun:
             "running_time": total,
             "api_metrics": dict(self.listener.api),
             "metrics": {"precision": precision, "recall": recall, "f1": f1},
+            "cost": api_cost(self.agent_name, self.listener.api, pairs=len(self.y_true)),
             "timings": {
                 "offline_refinement": self.listener.timings["offline_refinement"],
                 "online_refinement": self.listener.timings["online_refinement"],

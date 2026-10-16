@@ -113,6 +113,47 @@ MI–MatOnto.
 
 </details>
 
+<details>
+<summary><b>Cost: tokens, calls, and time</b></summary>
+
+<div align="center">
+
+| Track | Tokens sent vs full pairwise: Qwen2.5 | GPT-4o-mini | Llama-3.3 | Speedup, offline vs online refinement |
+|:--|:--:|:--:|:--:|:--:|
+| Mouse–Human | 3.06% | 2.88% | 6.76% | 7.17× |
+| NCIT–DOID | 54.48% | 54.63% | 54.48% | 2.33× |
+| Nell–DBpedia | 26.09% | 25.76% | 26.09% | 5.63× |
+| YAGO–Wikidata | 21.86% | 21.93% | 22.01% | 18.76× |
+| ENVO–SWEET | 6.99% | 6.82% | 6.99% | 7.00× |
+| MI–MatOnto | 43.04% | 41.66% | 41.81% | 13.31× |
+| **Overall** | **25.92%** | **25.61%** | **26.36%** | **9.03×** |
+
+<sub>Table 9 of [full.pdf](full.pdf)</sub>
+
+| Model | Total tokens | Output tokens | Tokens per call |
+|:--|--:|--:|--:|
+| Llama-3.3-70B | 480K | 15K | 470 |
+| DR1D-Llama-3-70B (deep reasoning) | 620K | 130K | 605 |
+
+<sub>All calls of one run · Table 10 of [full.pdf](full.pdf)</sub>
+
+| ENVO–SWEET, 1,000 candidate pairs | Seconds |
+|:--|--:|
+| LLM inference, single agent | 10,916 |
+| Offline refinement | 68 |
+| Online refinement | 14 |
+
+<sub>§ KROMA Runtime of [full.pdf](full.pdf)</sub>
+
+</div>
+
+Retrieval sends the model about a quarter of what full pairwise matching would,
+and under 7% on the smaller ontologies; inference, not refinement, is where the
+time goes. New runs write a `cost` block next to their metrics (`kroma.costs`:
+API calls, tokens per call, and dollars at list price for hosted models).
+
+</details>
+
 ## 🔧 Usage
 
 <details>
