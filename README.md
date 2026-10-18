@@ -237,7 +237,7 @@ returns the metrics dictionary.
 
 `kroma.integrations.mneme.KromaMatcher` runs KROMA's online refinement as an
 agent on a [Mneme](https://github.com/lamng3/mneme) blackboard, so it can share
-one memory with other agents (MOIRA hosts such a workflow). It consumes
+one memory with other agents. It consumes
 `match_request` memories and writes `match` and `review` memories with their
 provenance; a restarted matcher rebuilds its equivalence classes from memory.
 The judge is any function returning KROMA's (prediction, confidence, accept),

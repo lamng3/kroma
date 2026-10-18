@@ -13,7 +13,7 @@ that arrives later, including the first one, sends that work back to be redone.
 
 The judge is where KROMA's language-model debate plugs in
 (`kroma.agents.prompter.inference`); any callable with the same outputs works,
-which is how the tests and MOIRA's shared-memory demo run without a model.
+which is how the tests run without a model.
 Mneme is optional for KROMA: install it, or clone it beside this repository.
 
 The matcher's in-process state (the graph, ranks, equivalence classes) is a
