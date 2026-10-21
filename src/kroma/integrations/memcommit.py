@@ -1,4 +1,4 @@
-"""KROMA as a matching agent on a Mneme blackboard, refining equivalence classes with KROMA's own algorithm.
+"""KROMA as a matching agent on a MemCommit blackboard, refining equivalence classes with KROMA's own algorithm.
 
 `KromaMatcher` consumes `match_request` memories (a source concept and a
 target concept). For each it asks a judge for KROMA's three outputs
@@ -14,7 +14,7 @@ that arrives later, including the first one, sends that work back to be redone.
 The judge is where KROMA's language-model debate plugs in
 (`kroma.agents.prompter.inference`); any callable with the same outputs works,
 which is how the tests run without a model.
-Mneme is optional for KROMA: install it, or clone it beside this repository.
+MemCommit is optional for KROMA: install it, or clone it beside this repository.
 
 The matcher's in-process state (the graph, ranks, equivalence classes) is a
 cache of the store: on its first input it replays every live accepted match,
@@ -26,7 +26,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any
 
-from mneme import AgentSession, Memory, Transaction, query_ref
+from memcommit import AgentSession, Memory, Transaction, query_ref
 
 MATCH_REQUEST, MATCH, REVIEW = "match_request", "match", "review"
 

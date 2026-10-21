@@ -235,8 +235,8 @@ returns the metrics dictionary.
 <details>
 <summary><b>KROMA as an agent on a shared memory</b></summary>
 
-`kroma.integrations.mneme.KromaMatcher` runs KROMA's online refinement as an
-agent on a [Mneme](https://github.com/lamng3/mneme) blackboard, so it can share
+`kroma.integrations.memcommit.KromaMatcher` runs KROMA's online refinement as an
+agent on a [MemCommit](https://github.com/lamng3/memcommit) blackboard, so it can share
 one memory with other agents. It consumes
 `match_request` memories and writes `match` and `review` memories with their
 provenance; a restarted matcher rebuilds its equivalence classes from memory.
