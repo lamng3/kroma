@@ -6,7 +6,7 @@
 
 [![ISWC 2025](https://img.shields.io/badge/ISWC-2025-b31b1b)](https://doi.org/10.1007/978-3-032-09527-5_34)
 [![arXiv](https://img.shields.io/badge/arXiv-2507.14032-b31b1b)](https://arxiv.org/abs/2507.14032)
-[![Docs](https://img.shields.io/badge/docs-kroma--docs-8b5cf6)](https://lamng3.github.io/kroma-docs/)
+[![Docs](https://img.shields.io/badge/docs-kroma--docs-8b5cf6)](https://lamng3.com/kroma/)
 [![Python](https://img.shields.io/badge/python-3.12-3b82f6)](pyproject.toml)
 [![License: CC BY 4.0](https://img.shields.io/badge/license-CC%20BY%204.0-green.svg)](https://creativecommons.org/licenses/by/4.0/)
 
